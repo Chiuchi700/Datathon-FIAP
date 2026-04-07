@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=82.0.1", "wheel==0.46.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datathon"
+version = "0.1.0"
+description = "Projeto de previsão de ações com LSTM para Datathon"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "dvc>=3.60.0",
+    "joblib==1.5.3",
+    "fastapi>=0.115",
+    "matplotlib==3.10.8",
+    "mlflow>=3.10",
+    "numpy",
+    "pandas",
+    "python-dateutil==2.9.0.post0",
+    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.2",
+    "scikit-learn",
+    "scipy",
+    "seaborn==0.13.2",
+    "torch",
+    "uvicorn[standard]>=0.30",
+    "yfinance==0.2.66"
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipykernel==7.2.0",
+    "ipython==9.12.0",
+    "jupyter_client==8.8.0",
+    "jupyter_core==5.9.1",
+    "notebook",
+]
+
+[tool.setuptools]
+py-modules = []
