@@ -33,11 +33,13 @@ class TestNormalizeRawData:
         assert "close" in result.columns
 
     def test_renames_columns_with_keywords(self):
+        # Nomes devem conter as substrings exatas que o service verifica
+        # ("date", "close", "volume") após lowercase
         df = pd.DataFrame(
             {
                 "Price Date": ["2024-01-01"],
                 "Adj Close": [100.0],
-                "Vol": [1_000_000.0],
+                "NKE Volume": [1_000_000.0],
             }
         )
         result = _normalize_raw_data(df)
