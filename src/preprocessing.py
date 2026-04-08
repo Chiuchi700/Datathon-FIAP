@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import os
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy.typing import NDArray
 from sklearn.preprocessing import MinMaxScaler
 
-FEATURE_COLS_DEFAULT = [
+FEATURE_COLS_DEFAULT: list[str] = [
     "close",
     "return_1d",
     "ma_5_ratio",
@@ -12,6 +17,7 @@ FEATURE_COLS_DEFAULT = [
     "volatility_10",
     "volume_zscore_20",
 ]
+
 
 
 def create_processed_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -24,7 +30,7 @@ def create_processed_data(df: pd.DataFrame) -> pd.DataFrame:
         for col in df.columns
     ]
 
-    rename_map = {}
+    rename_map: dict[str, str] = {}
     for col in df.columns:
         if "date" in col:
             rename_map[col] = "date"
@@ -82,25 +88,44 @@ def create_processed_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def save_processed_data(df: pd.DataFrame, processed_path: str) -> None:
-    os.makedirs(os.path.dirname(processed_path), exist_ok=True)
+
+def save_processed_data(df: pd.DataFrame, processed_path: str | Path) -> Path:
+    processed_path = Path(processed_path)
+    os.makedirs(processed_path.parent, exist_ok=True)
     df.to_csv(processed_path, index=False)
+    return processed_path
 
 
-def load_processed_data(processed_path: str) -> pd.DataFrame:
+
+def load_processed_data(processed_path: str | Path) -> pd.DataFrame:
     df = pd.read_csv(processed_path)
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
     return df
 
 
-def _build_sequences(features_scaled, close_values, target_returns, dates, seq_length):
-    X, y, prev_close, target_date = [], [], [], []
+
+def _build_sequences(
+    features_scaled: NDArray[np.float32] | NDArray[np.float64],
+    close_values: NDArray[np.float32] | NDArray[np.float64],
+    target_returns: NDArray[np.float32] | NDArray[np.float64],
+    dates: NDArray[Any],
+    seq_length: int,
+) -> tuple[
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[Any],
+]:
+    X: list[NDArray[np.float32] | NDArray[np.float64]] = []
+    y: list[float] = []
+    prev_close: list[float] = []
+    target_date: list[Any] = []
 
     for i in range(seq_length, len(features_scaled)):
         X.append(features_scaled[i - seq_length:i])
-        y.append(target_returns[i])
-        prev_close.append(close_values[i])
+        y.append(float(target_returns[i]))
+        prev_close.append(float(close_values[i]))
         target_date.append(dates[i])
 
     return (
@@ -111,13 +136,28 @@ def _build_sequences(features_scaled, close_values, target_returns, dates, seq_l
     )
 
 
+
 def prepare_sequences(
     df: pd.DataFrame,
     seq_length: int = 60,
     train_split: float = 0.70,
     val_split: float = 0.15,
-    feature_cols=None,
-):
+    feature_cols: list[str] | None = None,
+) -> tuple[
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[np.float32],
+    NDArray[Any],
+    NDArray[Any],
+    NDArray[Any],
+    dict[str, Any],
+]:
     feature_cols = feature_cols or FEATURE_COLS_DEFAULT
 
     required_cols = feature_cols + ["close", "target_return_1d"]
@@ -158,7 +198,7 @@ def prepare_sequences(
     val_mask = (sequence_end_indices >= train_end) & (sequence_end_indices < val_end)
     test_mask = sequence_end_indices >= val_end
 
-    artifacts = {
+    artifacts: dict[str, Any] = {
         "scaler": scaler,
         "feature_cols": feature_cols,
         "seq_length": seq_length,

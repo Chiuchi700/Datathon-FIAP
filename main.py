@@ -4,6 +4,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import joblib
 import matplotlib
@@ -16,21 +17,23 @@ import pandas as pd
 import torch
 import yaml
 from dotenv import load_dotenv
+from numpy.typing import NDArray
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
 
 from src.logger_config import setup_logger
 from src.mlflow_utils import setup_mlflow
 from src.model_registry import register_run_model, set_model_alias
 from src.preprocessing import load_processed_data, prepare_sequences
-from src.train import build_lstm_model, predict, train_model
+from src.train import LSTMForecaster, TrainingHistory, build_lstm_model, predict, train_model
 
 load_dotenv()
 logger = setup_logger("main")
 
 
-def load_params(params_path: str | Path = "params.yaml") -> dict:
+def load_params(params_path: str | Path = "params.yaml") -> dict[str, Any]:
     with open(params_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
 
 
 def ensure_parent(path: str | Path) -> Path:
@@ -39,15 +42,24 @@ def ensure_parent(path: str | Path) -> Path:
     return path
 
 
-def direction_accuracy(y_true_prices, y_pred_prices):
+
+def direction_accuracy(
+    y_true_prices: NDArray[np.float32] | NDArray[np.float64],
+    y_pred_prices: NDArray[np.float32] | NDArray[np.float64],
+) -> float:
     real_dir = np.sign(np.diff(y_true_prices.flatten()))
     pred_dir = np.sign(np.diff(y_pred_prices.flatten()))
     if len(real_dir) == 0:
-        return np.nan
-    return (real_dir == pred_dir).mean()
+        return float(np.nan)
+    return float((real_dir == pred_dir).mean())
 
 
-def predict_next_trading_day(model, df, artifacts):
+
+def predict_next_trading_day(
+    model: LSTMForecaster,
+    df: pd.DataFrame,
+    artifacts: dict[str, Any],
+) -> dict[str, float]:
     feature_cols = artifacts["feature_cols"]
     seq_length = artifacts["seq_length"]
     scaler = artifacts["scaler"]
@@ -68,14 +80,16 @@ def predict_next_trading_day(model, df, artifacts):
     }
 
 
-def log_model_summary(model):
+
+def log_model_summary(model: LSTMForecaster) -> None:
     total_params = sum(param.numel() for param in model.parameters())
     trainable_params = sum(param.numel() for param in model.parameters() if param.requires_grad)
     logger.info("Arquitetura do modelo:\n%s", model)
     logger.info("Parâmetros totais: %s | treináveis: %s", total_params, trainable_params)
 
 
-def save_training_plot(history, output_path: Path):
+
+def save_training_plot(history: TrainingHistory, output_path: Path) -> None:
     output_path = ensure_parent(output_path)
     plt.figure(figsize=(12, 5))
     plt.plot(history.history["loss"], label="Train Loss")
@@ -90,7 +104,13 @@ def save_training_plot(history, output_path: Path):
     logger.info("Gráfico de loss salvo em: %s", output_path)
 
 
-def save_prediction_plot(y_test_prices, pred_prices, naive_prices, output_path: Path):
+
+def save_prediction_plot(
+    y_test_prices: NDArray[np.float32] | NDArray[np.float64],
+    pred_prices: NDArray[np.float32] | NDArray[np.float64],
+    naive_prices: NDArray[np.float32] | NDArray[np.float64],
+    output_path: Path,
+) -> None:
     output_path = ensure_parent(output_path)
     plt.figure(figsize=(12, 6))
     plt.plot(y_test_prices, color="black", label="Real")
@@ -106,7 +126,8 @@ def save_prediction_plot(y_test_prices, pred_prices, naive_prices, output_path: 
     logger.info("Gráfico de previsão salvo em: %s", output_path)
 
 
-def save_history_csv(history, output_path: Path):
+
+def save_history_csv(history: TrainingHistory, output_path: Path) -> None:
     output_path = ensure_parent(output_path)
     df_history = pd.DataFrame(
         {
@@ -119,7 +140,14 @@ def save_history_csv(history, output_path: Path):
     logger.info("Histórico de treino salvo em: %s", output_path)
 
 
-def save_predictions_csv(test_dates, y_test_prices, pred_prices, naive_prices, output_path: Path):
+
+def save_predictions_csv(
+    test_dates: NDArray[np.datetime64] | NDArray[Any],
+    y_test_prices: NDArray[np.float32] | NDArray[np.float64],
+    pred_prices: NDArray[np.float32] | NDArray[np.float64],
+    naive_prices: NDArray[np.float32] | NDArray[np.float64],
+    output_path: Path,
+) -> None:
     output_path = ensure_parent(output_path)
     predictions_df = pd.DataFrame(
         {
@@ -133,14 +161,21 @@ def save_predictions_csv(test_dates, y_test_prices, pred_prices, naive_prices, o
     logger.info("Predições de teste salvas em: %s", output_path)
 
 
-def save_metrics_json(metrics: dict, output_path: Path):
+
+def save_metrics_json(metrics: dict[str, float], output_path: Path) -> None:
     output_path = ensure_parent(output_path)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2, ensure_ascii=False)
     logger.info("Métricas salvas em: %s", output_path)
 
 
-def save_local_model_artifacts(model, artifacts: dict, model_path: Path, metadata_path: Path):
+
+def save_local_model_artifacts(
+    model: LSTMForecaster,
+    artifacts: dict[str, Any],
+    model_path: Path,
+    metadata_path: Path,
+) -> None:
     model_path = ensure_parent(model_path)
     metadata_path = ensure_parent(metadata_path)
     torch.save(model, model_path)
@@ -149,7 +184,8 @@ def save_local_model_artifacts(model, artifacts: dict, model_path: Path, metadat
     logger.info("Metadata local salva em: %s", metadata_path)
 
 
-def log_preprocessing_metadata(artifacts: dict) -> None:
+
+def log_preprocessing_metadata(artifacts: dict[str, Any]) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         metadata_path = Path(tmp_dir) / "model_metadata.pkl"
         joblib.dump(artifacts, metadata_path)
@@ -157,7 +193,8 @@ def log_preprocessing_metadata(artifacts: dict) -> None:
         logger.info("Metadata de pré-processamento logada no MLflow")
 
 
-def main():
+
+def main() -> None:
     try:
         params = load_params()
 

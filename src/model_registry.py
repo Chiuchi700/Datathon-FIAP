@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 import joblib
 import mlflow
 import mlflow.pytorch
 from mlflow import MlflowClient
 from mlflow.entities.model_registry.model_version_status import ModelVersionStatus
+from mlflow.entities.model_registry.registered_model import RegisteredModel
+from mlflow.entities.model_registry.model_version import ModelVersion
 from mlflow.exceptions import MlflowException
 
 from src.logger_config import setup_logger
@@ -44,7 +49,11 @@ def ensure_registered_model(model_name: str) -> None:
 
 
 
-def wait_until_model_version_is_ready(model_name: str, version: str | int, timeout_s: int = 60):
+def wait_until_model_version_is_ready(
+    model_name: str,
+    version: str | int,
+    timeout_s: int = 60,
+) -> ModelVersion:
     client = _get_client()
     version = str(version)
     start = time.time()
@@ -80,7 +89,7 @@ def register_run_model(
     run_id: str,
     model_name: str = DEFAULT_MODEL_NAME,
     model_artifact_name: str = DEFAULT_MODEL_ARTIFACT_NAME,
-):
+) -> ModelVersion:
     ensure_registered_model(model_name)
 
     model_uri = f"runs:/{run_id}/{model_artifact_name}"
@@ -121,7 +130,10 @@ def set_model_alias(model_name: str, version: str | int, alias: str = "champion"
 
 
 
-def get_model_version_by_alias(model_name: str = DEFAULT_MODEL_NAME, alias: str = "champion"):
+def get_model_version_by_alias(
+    model_name: str = DEFAULT_MODEL_NAME,
+    alias: str = "champion",
+) -> ModelVersion:
     client = _get_client()
     model_version = client.get_model_version_by_alias(model_name, alias)
     logger.info(
@@ -140,7 +152,7 @@ def build_registry_model_uri(model_name: str = DEFAULT_MODEL_NAME, alias: str = 
 
 
 
-def load_model_from_registry(model_name: str = DEFAULT_MODEL_NAME, alias: str = "champion"):
+def load_model_from_registry(model_name: str = DEFAULT_MODEL_NAME, alias: str = "champion") -> Any:
     configure_mlflow_uris(
         tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
         registry_uri=os.getenv("MLFLOW_REGISTRY_URI"),
@@ -155,7 +167,7 @@ def download_metadata_from_registry(
     model_name: str = DEFAULT_MODEL_NAME,
     alias: str = "champion",
     metadata_artifact_path: str = DEFAULT_METADATA_ARTIFACT_PATH,
-):
+) -> dict[str, Any]:
     configure_mlflow_uris(
         tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
         registry_uri=os.getenv("MLFLOW_REGISTRY_URI"),

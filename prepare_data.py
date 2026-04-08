@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -11,12 +12,13 @@ from preprocessing import create_processed_data, save_processed_data
 logger = setup_logger("prepare_data")
 
 
-def load_params(params_path: str | Path = "params.yaml") -> dict:
+def load_params(params_path: str | Path = "params.yaml") -> dict[str, Any]:
     with open(params_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
-def main():
+
+def main() -> None:
     params = load_params()
     data_cfg = params["data"]
 
