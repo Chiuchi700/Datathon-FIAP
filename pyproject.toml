@@ -35,6 +35,11 @@ dev = [
     "jupyter_core==5.9.1",
     "notebook",
 ]
+test = [
+    "pytest>=8.0",
+    "pytest-mock>=3.14",
+    "httpx>=0.27",
+]
 
 [tool.setuptools]
 py-modules = []
