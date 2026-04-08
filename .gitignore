@@ -1,0 +1,50 @@
+# Ambiente virtual
+venv/
+.venv/
+
+# Variáveis de ambiente
+.env
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Build / empacotamento
+*.egg-info/
+build/
+dist/
+
+# Logs
+logs/
+*.log
+
+# Dados gerados localmente
+data/raw/*.csv
+data/processed/*.csv
+
+# Artefatos de treino e avaliação
+artifacts/plots/*.png
+reports/*.csv
+reports/*.json
+
+# Modelos e metadados locais
+models/*.pt
+models/*.pkl
+models/*.joblib
+
+# MLflow local
+mlartifacts/
+mlruns/
+mlflow.db
+mlflow.db-journal
+
+# DVC temporários
+tmp/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Sistema
+.DS_Store
+mlflow.db

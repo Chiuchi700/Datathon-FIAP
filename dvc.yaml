@@ -1,0 +1,72 @@
+stages:
+  prepare_data:
+    cmd: python prepare_data.py
+    deps:
+      - data_loader.py
+      - preprocessing.py
+      - logger_config.py
+      - params.yaml
+    params:
+      - data.ticker
+      - data.months
+      - data.raw_path
+      - data.processed_path
+    outs:
+      - data/raw/nike_raw.csv
+      - data/processed/nike_processed.csv
+
+  train_model:
+    cmd: python main.py
+    deps:
+      - main.py
+      - train.py
+      - preprocessing.py
+      - logger_config.py
+      - mlflow_utils.py
+      - model_registry.py
+      - params.yaml
+      - data/processed/nike_processed.csv
+    params:
+      - train.seq_length
+      - train.train_split
+      - train.val_split
+      - train.epochs
+      - train.batch_size
+      - train.learning_rate
+      - train.patience
+      - outputs.model_path
+      - outputs.metadata_path
+      - outputs.metrics_path
+      - outputs.history_path
+      - outputs.predictions_path
+      - outputs.training_plot_path
+      - outputs.prediction_plot_path
+      - mlflow.experiment_name
+      - mlflow.tracking_uri
+      - mlflow.registry_uri
+      - mlflow.artifact_root
+      - mlflow.register_model
+      - mlflow.registered_model_name
+      - mlflow.model_alias
+      - mlflow.model_artifact_name
+    outs:
+      - models/lstm_model.pt
+      - models/model_metadata.pkl
+      - artifacts/plots/training_loss.png
+      - artifacts/plots/prediction_vs_real.png
+      - reports/training_metrics.csv
+      - reports/test_predictions.csv
+    metrics:
+      - reports/metrics.json
+    plots:
+      - reports/training_metrics.csv:
+          x: epoch
+          y:
+            - train_loss
+            - val_loss
+      - reports/test_predictions.csv:
+          x: date
+          y:
+            - real_price
+            - pred_price
+            - naive_price

@@ -1,0 +1,33 @@
+data:
+  ticker: NKE
+  months: 60
+  raw_path: data/raw/nike_raw.csv
+  processed_path: data/processed/nike_processed.csv
+
+train:
+  seq_length: 60
+  train_split: 0.70
+  val_split: 0.15
+  epochs: 80
+  batch_size: 32
+  learning_rate: 0.001
+  patience: 12
+
+outputs:
+  model_path: models/lstm_model.pt
+  metadata_path: models/model_metadata.pkl
+  metrics_path: reports/metrics.json
+  history_path: reports/training_metrics.csv
+  predictions_path: reports/test_predictions.csv
+  training_plot_path: artifacts/plots/training_loss.png
+  prediction_plot_path: artifacts/plots/prediction_vs_real.png
+
+mlflow:
+  experiment_name: nike_lstm_forecasting
+  tracking_uri: sqlite:///mlflow.db
+  registry_uri: sqlite:///mlflow.db
+  artifact_root: file:./mlartifacts
+  register_model: true
+  registered_model_name: nike_lstm_forecaster
+  model_alias: candidate
+  model_artifact_name: model
