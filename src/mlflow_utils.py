@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
 
@@ -8,11 +10,11 @@ from src.logger_config import setup_logger
 
 logger = setup_logger("mlflow_utils")
 
-
 DEFAULT_LOCAL_TRACKING_URI = "sqlite:///mlflow.db"
 DEFAULT_SERVER_TRACKING_URI = "http://127.0.0.1:5000"
 DEFAULT_CLIENT_TRACKING_URI = DEFAULT_LOCAL_TRACKING_URI
 DEFAULT_ARTIFACT_ROOT = "file:./mlartifacts"
+
 
 
 def _normalize_artifact_location(artifact_location: str | None) -> str:
@@ -68,8 +70,6 @@ def ensure_experiment(
     tracking_uri = mlflow.get_tracking_uri()
     normalized_artifact_location = _normalize_artifact_location(artifact_location)
 
-    # Quando o tracking é via servidor HTTP, o ideal é o servidor decidir o artifact root
-    # a partir de --artifacts-destination / --default-artifact-root.
     if _is_http_uri(tracking_uri):
         experiment_id = client.create_experiment(name=experiment_name)
         logger.info(

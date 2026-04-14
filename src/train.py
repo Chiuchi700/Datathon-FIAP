@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 import numpy as np
 import torch
+from numpy.typing import NDArray
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -18,7 +21,7 @@ class LSTMForecaster(nn.Module):
         hidden_size_1: int = 64,
         hidden_size_2: int = 32,
         dropout: float = 0.15,
-    ):
+    ) -> None:
         super().__init__()
         self.input_size = input_size
         self.hidden_size_1 = hidden_size_1
@@ -69,15 +72,15 @@ class TrainingHistory:
 
 
 class EarlyStopping:
-    def __init__(self, patience: int = 12, min_delta: float = 1e-6):
+    def __init__(self, patience: int = 12, min_delta: float = 1e-6) -> None:
         self.patience = patience
         self.min_delta = min_delta
         self.best_loss = float("inf")
         self.counter = 0
-        self.best_state_dict = None
+        self.best_state_dict: dict[str, torch.Tensor] | None = None
         self.should_stop = False
 
-    def step(self, val_loss: float, model: nn.Module):
+    def step(self, val_loss: float, model: nn.Module) -> None:
         if val_loss < self.best_loss - self.min_delta:
             self.best_loss = val_loss
             self.counter = 0
@@ -91,10 +94,12 @@ class EarlyStopping:
                 self.should_stop = True
 
 
+
 def get_device() -> torch.device:
     if torch.cuda.is_available():
         return torch.device("cuda")
     return torch.device("cpu")
+
 
 
 def build_lstm_model(input_shape: Tuple[int, int]) -> LSTMForecaster:
@@ -102,16 +107,28 @@ def build_lstm_model(input_shape: Tuple[int, int]) -> LSTMForecaster:
     return LSTMForecaster(input_size=n_features)
 
 
-def create_dataloader(X, y, batch_size: int, shuffle: bool) -> DataLoader:
+
+def create_dataloader(
+    X: NDArray[np.float32] | NDArray[np.float64],
+    y: NDArray[np.float32] | NDArray[np.float64],
+    batch_size: int,
+    shuffle: bool,
+) -> DataLoader:
     X_tensor = torch.tensor(X, dtype=torch.float32)
     y_tensor = torch.tensor(y, dtype=torch.float32)
     dataset = TensorDataset(X_tensor, y_tensor)
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=False)
 
 
-def evaluate_model(model: nn.Module, dataloader: DataLoader, criterion: nn.Module, device: torch.device) -> float:
+
+def evaluate_model(
+    model: nn.Module,
+    dataloader: DataLoader,
+    criterion: nn.Module,
+    device: torch.device,
+) -> float:
     model.eval()
-    losses = []
+    losses: list[float] = []
 
     with torch.no_grad():
         for X_batch, y_batch in dataloader:
@@ -120,12 +137,18 @@ def evaluate_model(model: nn.Module, dataloader: DataLoader, criterion: nn.Modul
 
             predictions = model(X_batch)
             loss = criterion(predictions, y_batch)
-            losses.append(loss.item())
+            losses.append(float(loss.item()))
 
     return float(np.mean(losses)) if losses else float("nan")
 
 
-def predict(model: nn.Module, X, batch_size: int = 256, device: torch.device | None = None) -> np.ndarray:
+
+def predict(
+    model: nn.Module,
+    X: NDArray[np.float32] | NDArray[np.float64],
+    batch_size: int = 256,
+    device: torch.device | None = None,
+) -> NDArray[np.float32]:
     device = device or get_device()
     model = model.to(device)
     model.eval()
@@ -133,7 +156,7 @@ def predict(model: nn.Module, X, batch_size: int = 256, device: torch.device | N
     X_tensor = torch.tensor(X, dtype=torch.float32)
     dataloader = DataLoader(X_tensor, batch_size=batch_size, shuffle=False, drop_last=False)
 
-    outputs = []
+    outputs: list[NDArray[np.float32]] = []
     with torch.no_grad():
         for X_batch in dataloader:
             X_batch = X_batch.to(device)
@@ -146,12 +169,13 @@ def predict(model: nn.Module, X, batch_size: int = 256, device: torch.device | N
     return np.concatenate(outputs).astype(np.float32)
 
 
+
 def train_model(
     model: nn.Module,
-    X_train,
-    y_train,
-    X_val,
-    y_val,
+    X_train: NDArray[np.float32] | NDArray[np.float64],
+    y_train: NDArray[np.float32] | NDArray[np.float64],
+    X_val: NDArray[np.float32] | NDArray[np.float64],
+    y_val: NDArray[np.float32] | NDArray[np.float64],
     epochs: int = 80,
     batch_size: int = 32,
     learning_rate: float = 0.001,
@@ -174,13 +198,13 @@ def train_model(
     )
     early_stopper = EarlyStopping(patience=patience)
 
-    history = {"loss": [], "val_loss": []}
+    history: dict[str, list[float]] = {"loss": [], "val_loss": []}
 
     logger.info("Treinando em device: %s", device)
 
     for epoch in range(epochs):
         model.train()
-        train_losses = []
+        train_losses: list[float] = []
 
         for X_batch, y_batch in train_loader:
             X_batch = X_batch.to(device)
@@ -192,7 +216,7 @@ def train_model(
             loss.backward()
             optimizer.step()
 
-            train_losses.append(loss.item())
+            train_losses.append(float(loss.item()))
 
         train_loss = float(np.mean(train_losses)) if train_losses else float("nan")
         val_loss = evaluate_model(model, val_loader, criterion, device)
