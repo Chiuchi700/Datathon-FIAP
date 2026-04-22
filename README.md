@@ -150,20 +150,38 @@ DATATHON/
 │   │   └── nike_raw.csv
 │   └── processed/
 │       └── nike_processed.csv
+├── docs/
+│   └── architecture_llm_rag_mcp.md
 ├── logs/
 │   └── pipeline.log
 ├── mlartifacts/
 ├── src/
+│   ├── api/
+│   │   ├── app.py
+│   │   ├── schema.py
+│   │   ├── service.py
+│   │   ├── llm_service.py
+│   │   └── rag_service.py
+│   ├── inference/
+│   │   └── inference.py
 │   ├── data_loader.py
 │   ├── logger_config.py
 │   ├── mlflow_utils.py
 │   ├── model_registry.py
 │   ├── preprocessing.py
 │   ├── train.py
-│   └── inference/
-│       └── inference.py
-├── 01_eda_nike.ipynb
-├── main.py
+│   └── mcp_server.py
+├── tests/
+│   ├── test_api_endpoints.py
+│   ├── test_api_schema.py
+│   ├── test_api_service.py
+│   ├── test_llm_service.py
+│   ├── test_rag_service.py
+│   └── test_mcp_server.py
+├── .claude/
+│   └── mcp.json
+├── docker-compose.yaml
+├── docker-compose.llm.yaml
 ├── pyproject.toml
 ├── mlflow.db
 └── README.md
@@ -389,14 +407,179 @@ Apesar da evolução da pipeline, ainda existem pontos de atenção naturais par
 
 ---
 
-## Próximos passos recomendados
+## LLM — Explicacao de previsoes com Ollama
 
-Os próximos passos mais naturais para evolução do projeto são:
+O projeto integra uma LLM local via **Ollama** para gerar explicacoes em linguagem natural das previsoes do modelo LSTM.
 
-1. consolidar a camada de serving com FastAPI consumindo o Model Registry
-2. documentar exemplos de payload para inferência com 1 valor e com janela completa
-3. promover a versão validada para alias `champion`
-4. comparar diferentes janelas temporais e conjuntos de features
-5. testar modelos adicionais como GRU, TCN ou abordagens baseadas em boosting para benchmark
-6. automatizar treino e deploy com Docker
-7. incluir resultados quantitativos finais no README após fechamento dos experimentos
+### Endpoint `/explain`
+
+```bash
+curl -X POST http://localhost:8000/explain \
+  -H "Content-Type: application/json" \
+  -d '{"close": 95.5}'
+```
+
+Resposta:
+```json
+{
+  "explanation": "O modelo preve alta moderada para a Nike amanha...",
+  "close": 95.5,
+  "predicted_price": 95.9,
+  "predicted_return": 0.0042
+}
+```
+
+O fluxo: recebe o ultimo close -> chama o modelo LSTM para prever -> envia o resultado ao Ollama para gerar a explicacao.
+
+### Configuracao
+
+| Variavel | Default | Descricao |
+|----------|---------|-----------|
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | URL do servidor Ollama |
+| `OLLAMA_MODEL` | `llama3.2:1b` | Modelo para geracao de texto |
+| `OLLAMA_TIMEOUT` | `30` | Timeout em segundos |
+
+---
+
+## RAG — Perguntas sobre o projeto com ChromaDB
+
+O projeto implementa RAG (Retrieval-Augmented Generation) usando **ChromaDB** como vector store e **Ollama** para embeddings e geracao de respostas.
+
+### Como funciona
+
+1. Documentos do projeto (`README.md`, `params.yaml`) sao indexados no ChromaDB
+2. Embeddings sao gerados pelo modelo `nomic-embed-text` via Ollama
+3. Ao receber uma pergunta, o sistema busca os chunks mais relevantes
+4. Os chunks sao enviados como contexto para a LLM gerar a resposta
+
+### Endpoint `/chat`
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Qual o seq_length do modelo?"}'
+```
+
+Resposta:
+```json
+{
+  "answer": "O modelo usa seq_length de 60 dias...",
+  "question": "Qual o seq_length do modelo?"
+}
+```
+
+### Configuracao
+
+| Variavel | Default | Descricao |
+|----------|---------|-----------|
+| `CHROMA_HOST` | `localhost` | Host do ChromaDB |
+| `CHROMA_PORT` | `8100` | Porta do ChromaDB |
+| `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text` | Modelo para embeddings |
+
+---
+
+## MCP Server — Integracao com Claude Code
+
+O projeto inclui um servidor **MCP (Model Context Protocol)** que permite ao Claude Code (ou qualquer cliente MCP) interagir diretamente com a API de previsao.
+
+### Tools disponiveis
+
+| Tool | Descricao |
+|------|-----------|
+| `predict(close)` | Preve o proximo preco de fechamento |
+| `model_info()` | Retorna informacoes do modelo |
+| `explain_prediction(close)` | Gera explicacao em linguagem natural |
+| `ask_about_model(question)` | Pergunta sobre o projeto via RAG |
+
+### Configuracao no Claude Code
+
+O arquivo `.claude/mcp.json` ja esta configurado. Para usar, basta ter a FastAPI rodando em `http://localhost:8000`.
+
+Ou configurar manualmente:
+
+```json
+{
+  "mcpServers": {
+    "nike-forecast": {
+      "command": "python",
+      "args": ["-m", "src.mcp_server"],
+      "env": {
+        "FASTAPI_BASE_URL": "http://localhost:8000"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Infraestrutura LLM/RAG com Docker
+
+Os servicos de LLM e RAG rodam em um Docker Compose separado para nao impactar a stack principal:
+
+```bash
+# Subir Ollama + ChromaDB
+docker compose -f docker-compose.llm.yaml up -d
+
+# Aguardar download dos modelos (~5 min na primeira vez)
+docker logs -f ollama-pull
+
+# Subir tudo junto (stack principal + LLM/RAG)
+docker compose -f docker-compose.yaml -f docker-compose.llm.yaml up -d
+```
+
+### Servicos do docker-compose.llm.yaml
+
+| Servico | Imagem | Porta | Funcao |
+|---------|--------|-------|--------|
+| `ollama` | `ollama/ollama:latest` | 11434 | Servidor LLM + embeddings |
+| `ollama-pull` | `ollama/ollama:latest` | - | Init container que baixa os modelos |
+| `chromadb` | `chromadb/chroma:latest` | 8100 | Vector store para RAG |
+
+### Diagrama de arquitetura
+
+O diagrama completo com fluxos detalhados esta em [`docs/architecture_llm_rag_mcp.md`](docs/architecture_llm_rag_mcp.md).
+
+```
+┌──────────────────┐
+│   Claude Code    │
+│  (MCP Client)    │
+└────────┬─────────┘
+         │ MCP (stdio)
+         ▼
+┌──────────────────┐       ┌────────────┐
+│   MCP Server     │──────▶│  FastAPI    │
+│ predict          │ HTTP  │ /predict   │
+│ model_info       │       │ /explain   │
+│ explain_prediction│      │ /chat      │
+│ ask_about_model  │       │ /model-info│
+└──────────────────┘       └──┬─────┬───┘
+                              │     │
+                    ┌─────────┘     └─────────┐
+                    ▼                         ▼
+              ┌───────────┐           ┌─────────────┐
+              │  MLflow   │           │ LLM Service │
+              │ Registry  │           │             │
+              └───────────┘           └──────┬──────┘
+                                             │
+                                    ┌────────┴────────┐
+                                    ▼                 ▼
+                              ┌──────────┐     ┌───────────┐
+                              │  Ollama  │     │ ChromaDB  │
+                              │ LLM +    │◀────│ RAG       │
+                              │ Embeddings│    │ Vectors   │
+                              └──────────┘     └───────────┘
+```
+
+---
+
+## Proximos passos recomendados
+
+Os proximos passos mais naturais para evolucao do projeto sao:
+
+1. promover a versao validada para alias `champion`
+2. comparar diferentes janelas temporais e conjuntos de features
+3. testar modelos adicionais como GRU, TCN ou abordagens baseadas em boosting para benchmark
+4. expandir RAG com dados externos (noticias, SEC filings)
+5. adicionar sentiment analysis como feature do LSTM
+6. incluir resultados quantitativos finais no README apos fechamento dos experimentos
