@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "nike-forecast": {
+      "command": "python",
+      "args": ["-m", "src.mcp_server"],
+      "cwd": ".",
+      "env": {
+        "FASTAPI_BASE_URL": "http://localhost:8000"
+      }
+    }
+  }
+}
