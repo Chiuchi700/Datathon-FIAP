@@ -5,7 +5,16 @@ Testes unitários para os schemas Pydantic da API (src/api/schema.py).
 import pytest
 from pydantic import ValidationError
 
-from src.api.schema import FeatureRow, ModelInfoResponse, PredictRequest, PredictResponse
+from src.api.schema import (
+    ChatRequest,
+    ChatResponse,
+    ExplainRequest,
+    ExplainResponse,
+    FeatureRow,
+    ModelInfoResponse,
+    PredictRequest,
+    PredictResponse,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -153,3 +162,105 @@ class TestFeatureRow:
         payload["return_1d"] = -0.05
         row = FeatureRow(**payload)
         assert row.return_1d == pytest.approx(-0.05)
+
+
+# ---------------------------------------------------------------------------
+# ExplainRequest
+# ---------------------------------------------------------------------------
+
+
+class TestExplainRequest:
+    def test_valid_close(self):
+        req = ExplainRequest(close=95.5)
+        assert req.close == pytest.approx(95.5)
+
+    def test_missing_close_raises(self):
+        with pytest.raises(ValidationError):
+            ExplainRequest()
+
+    def test_string_close_raises(self):
+        with pytest.raises(ValidationError):
+            ExplainRequest(close="nao-e-numero")
+
+    def test_integer_coerced_to_float(self):
+        req = ExplainRequest(close=100)
+        assert isinstance(req.close, float)
+
+
+# ---------------------------------------------------------------------------
+# ExplainResponse
+# ---------------------------------------------------------------------------
+
+
+class TestExplainResponse:
+    def _valid_payload(self):
+        return {
+            "explanation": "O modelo preve alta.",
+            "close": 95.5,
+            "predicted_price": 95.9,
+            "predicted_return": 0.0042,
+        }
+
+    def test_valid_payload(self):
+        resp = ExplainResponse(**self._valid_payload())
+        assert resp.explanation == "O modelo preve alta."
+
+    def test_missing_explanation_raises(self):
+        payload = self._valid_payload()
+        del payload["explanation"]
+        with pytest.raises(ValidationError):
+            ExplainResponse(**payload)
+
+    def test_missing_close_raises(self):
+        payload = self._valid_payload()
+        del payload["close"]
+        with pytest.raises(ValidationError):
+            ExplainResponse(**payload)
+
+
+# ---------------------------------------------------------------------------
+# ChatRequest
+# ---------------------------------------------------------------------------
+
+
+class TestChatRequest:
+    def test_valid_question(self):
+        req = ChatRequest(question="Qual o modelo?")
+        assert req.question == "Qual o modelo?"
+
+    def test_missing_question_raises(self):
+        with pytest.raises(ValidationError):
+            ChatRequest()
+
+    def test_empty_string_is_valid(self):
+        req = ChatRequest(question="")
+        assert req.question == ""
+
+
+# ---------------------------------------------------------------------------
+# ChatResponse
+# ---------------------------------------------------------------------------
+
+
+class TestChatResponse:
+    def _valid_payload(self):
+        return {
+            "answer": "O modelo usa LSTM.",
+            "question": "Qual o modelo?",
+        }
+
+    def test_valid_payload(self):
+        resp = ChatResponse(**self._valid_payload())
+        assert resp.answer == "O modelo usa LSTM."
+
+    def test_missing_answer_raises(self):
+        payload = self._valid_payload()
+        del payload["answer"]
+        with pytest.raises(ValidationError):
+            ChatResponse(**payload)
+
+    def test_missing_question_raises(self):
+        payload = self._valid_payload()
+        del payload["question"]
+        with pytest.raises(ValidationError):
+            ChatResponse(**payload)

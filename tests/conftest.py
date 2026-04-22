@@ -62,3 +62,21 @@ def sample_predict_result():
         "last_close": 95.5,
         "predicted_price": 95.9,
     }
+
+
+@pytest.fixture
+def sample_explain_result():
+    return {
+        "explanation": "O modelo preve alta moderada para a Nike amanha.",
+        "close": 95.5,
+        "predicted_price": 95.9,
+        "predicted_return": 0.0042,
+    }
+
+
+@pytest.fixture
+def sample_chat_result():
+    return {
+        "answer": "O modelo usa LSTM com 60 dias de janela temporal.",
+        "question": "Qual o seq_length do modelo?",
+    }

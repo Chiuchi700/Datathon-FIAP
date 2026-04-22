@@ -31,3 +31,23 @@ class ModelInfoResponse(BaseModel):
     model_alias: str
     seq_length: int
     feature_cols: list[str]
+
+
+class ExplainRequest(BaseModel):
+    close: float = Field(..., description="Ultimo preco de fechamento conhecido")
+
+
+class ExplainResponse(BaseModel):
+    explanation: str
+    close: float
+    predicted_price: float
+    predicted_return: float
+
+
+class ChatRequest(BaseModel):
+    question: str = Field(..., description="Pergunta sobre o modelo ou projeto")
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    question: str
