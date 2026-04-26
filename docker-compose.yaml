@@ -157,7 +157,22 @@ services:
         mkdir -p /opt/airflow/project/{data/raw,data/processed,models,reports,artifacts/plots,mlartifacts}
         # chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow
         # O migrate v3 processa as variáveis _AIRFLOW_WWW_USER automaticamente
+
+        # GARANTE QUE O BANCO MLFLOW EXISTE COMO ARQUIVO (evita pasta fantasma do Docker)
+        if [ ! -f /opt/airflow/project/mlflow.db ]; then
+          touch /opt/airflow/project/mlflow.db
+        fi
+        
         /entrypoint airflow db migrate
+
+        # CRIAÇÃO DO USUÁRIO VISITANTE USANDO O .ENV
+        airflow users create \
+          --username "${VISITANTE_USERNAME}" \
+          --password "${VISITANTE_PASSWORD}" \
+          --firstname Visitante \
+          --lastname Datathon \
+          --role Viewer \
+          --email visitante@example.com || true
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
@@ -191,7 +206,9 @@ services:
       - "9090:9090"
     depends_on:
       - fastapi-app
-
+      - cadvisor
+      - airflow-apiserver
+  
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -201,9 +218,14 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,frser-sqlite-datasource
+      # ATIVA ACESSO VISITANTE AUTOMÁTICO:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./mlflow.db:/opt/mlflow.db:ro
 
   mlflow-ui:
     image: ghcr.io/mlflow/mlflow:latest
@@ -219,6 +241,20 @@ services:
       mlflow ui --backend-store-uri sqlite:///mlflow.db 
                 --default-artifact-root /opt/airflow/project/mlartifacts 
                 --host 0.0.0.0
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    devices:
+      - /dev/kmsg
+    restart: always
 
 volumes:
   postgres-db-volume:
