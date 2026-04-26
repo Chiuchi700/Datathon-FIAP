@@ -17,9 +17,15 @@ mkdir -p data/raw data/processed models reports artifacts/plots mlartifacts
 # 3. Estrutura de Provisioning do Grafana (Monitoramento automático)
 mkdir -p grafana/provisioning/dashboards grafana/provisioning/datasources
 
-# 4. Permissões de escrita (Crucial para Linux/WSL2)
-chmod -R 777 logs dags config plugins data models reports artifacts mlartifacts
+# 4. Cria o arquivo do banco de dados (evita que o Docker crie uma pasta no lugar)
+touch mlflow.db
+
+# 5. Permissões de escrita (Crucial para Linux/WSL2)
+chmod -R 777 logs dags config plugins data models reports artifacts mlartifacts mlflow.db
 chmod -R 755 grafana/provisioning
+
+Cria o arquivo do banco de dados (evita que o Docker crie uma pasta no lugar)
+touch mlflow.db
 
 > **Nota para Linux/WSL2:** Caso o Grafana apresente erro de leitura no boot, execute:  
 > `sudo chown -R 472:0 grafana/provisioning`
