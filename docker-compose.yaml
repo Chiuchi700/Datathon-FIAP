@@ -26,6 +26,10 @@ x-airflow-common:
     AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-airflow_jwt_secret}
     AIRFLOW__API_AUTH__JWT_ISSUER: ${AIRFLOW__API_AUTH__JWT_ISSUER:-airflow}
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    AIRFLOW__METRICS__METRICS_ALLOW_LIST: /*
+    AIRFLOW__METRICS__STATSD_ON: "True"
+    AIRFLOW__METRICS__STATSD_HOST: "prometheus"
+    AIRFLOW__METRICS__STATSD_PORT: "9125"
     # _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     # O Airflow vai ler o pyproject.toml que "apareceu" em /opt/airflow/project
     #_PIP_ADDITIONAL_REQUIREMENTS: "-e /opt/airflow/project"
@@ -238,9 +242,9 @@ services:
       - .:/opt/airflow/project
     working_dir: /opt/airflow/project
     command: >
-      mlflow ui --backend-store-uri sqlite:///mlflow.db 
-                --default-artifact-root /opt/airflow/project/mlartifacts 
-                --host 0.0.0.0
+      mlflow ui --backend-store-uri sqlite:////opt/airflow/project/mlflow.db 
+            --default-artifact-root /opt/airflow/project/mlartifacts 
+            --host 0.0.0.0
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -252,6 +256,8 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
     devices:
       - /dev/kmsg
     restart: always
