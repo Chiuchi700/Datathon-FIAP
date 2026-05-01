@@ -162,3 +162,83 @@ def test_predict_returns_422_when_close_is_string():
 def test_predict_returns_422_when_body_is_empty():
     response = client.post("/predict", content=b"", headers={"Content-Type": "application/json"})
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# POST /explain
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def mock_explain_deps(sample_model_info, sample_predict_result):
+    full_predict = {**sample_model_info, **sample_predict_result}
+    with (
+        patch("src.api.app.predict_from_close", return_value=full_predict) as mock_predict,
+        patch("src.api.app.explain_prediction", return_value="O modelo preve alta moderada.") as mock_explain,
+    ):
+        yield mock_predict, mock_explain
+
+
+def test_explain_returns_200(mock_explain_deps):
+    response = client.post("/explain", json={"close": 95.5})
+    assert response.status_code == 200
+
+
+def test_explain_response_contains_explanation(mock_explain_deps):
+    response = client.post("/explain", json={"close": 95.5})
+    data = response.json()
+    assert data["explanation"] == "O modelo preve alta moderada."
+    assert data["close"] == pytest.approx(95.5)
+    assert "predicted_price" in data
+    assert "predicted_return" in data
+
+
+def test_explain_returns_400_on_value_error():
+    with patch("src.api.app.predict_from_close", side_effect=ValueError("Historico insuficiente")):
+        response = client.post("/explain", json={"close": 0.0})
+    assert response.status_code == 400
+
+
+def test_explain_returns_500_on_generic_exception():
+    with patch("src.api.app.predict_from_close", side_effect=RuntimeError("Falha")):
+        response = client.post("/explain", json={"close": 95.5})
+    assert response.status_code == 500
+
+
+def test_explain_returns_422_when_close_missing():
+    response = client.post("/explain", json={})
+    assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# POST /chat
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def mock_chat_deps():
+    with patch("src.api.app.chat_about_model", return_value="O modelo usa LSTM bidirecional.") as mock:
+        yield mock
+
+
+def test_chat_returns_200(mock_chat_deps):
+    response = client.post("/chat", json={"question": "Qual modelo e usado?"})
+    assert response.status_code == 200
+
+
+def test_chat_response_contains_answer(mock_chat_deps):
+    response = client.post("/chat", json={"question": "Qual modelo e usado?"})
+    data = response.json()
+    assert data["answer"] == "O modelo usa LSTM bidirecional."
+    assert data["question"] == "Qual modelo e usado?"
+
+
+def test_chat_returns_500_on_exception():
+    with patch("src.api.app.chat_about_model", side_effect=RuntimeError("Erro")):
+        response = client.post("/chat", json={"question": "Algo?"})
+    assert response.status_code == 500
+
+
+def test_chat_returns_422_when_question_missing():
+    response = client.post("/chat", json={})
+    assert response.status_code == 422
