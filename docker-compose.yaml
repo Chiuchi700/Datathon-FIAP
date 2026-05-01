@@ -162,19 +162,22 @@ services:
     command:
       - -c
       - |
+        # 1. Cria a estrutura de pastas
         mkdir -p /opt/airflow/{logs,dags,plugins,config}
-        mkdir -p /opt/airflow/project/{data/raw,data/processed,models,reports,artifacts/plots,mlartifacts}
-        # chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow
-        # O migrate v3 processa as variáveis _AIRFLOW_WWW_USER automaticamente
+        mkdir -p /opt/airflow/project/{data/raw,data/processed,models,mlartifacts,chroma_data,ollama_data}
 
-        # GARANTE QUE O BANCO MLFLOW EXISTE COMO ARQUIVO (evita pasta fantasma do Docker)
+        # 2. Garante o arquivo do MLflow e as PERMISSÕES (Solução para o erro de readonly)
         if [ ! -f /opt/airflow/project/mlflow.db ]; then
           touch /opt/airflow/project/mlflow.db
         fi
-        
+        # Garante que o banco e a pasta de artefatos sejam graváveis por qualquer usuário do container
+        chmod 666 /opt/airflow/project/mlflow.db
+        chmod -R 777 /opt/airflow/project/mlartifacts
+
+        # 3. Migra o banco do Airflow
         /entrypoint airflow db migrate
 
-        # CRIAÇÃO DO USUÁRIO VISITANTE USANDO O .ENV
+        # 4. Criação do usuário visitante
         airflow users create \
           --username "${VISITANTE_USERNAME}" \
           --password "${VISITANTE_PASSWORD}" \
