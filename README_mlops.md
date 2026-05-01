@@ -12,7 +12,7 @@ No terminal, execute:
 mkdir -p dags logs config plugins fast_api prometheus
 
 # 2. Pastas do Projeto ML (Onde o pipeline grava os resultados)
-mkdir -p data/raw data/processed models reports artifacts/plots mlartifacts
+mkdir -p data/raw data/processed models reports artifacts/plots mlartifacts chroma_data ollama_data
 
 # 3. Estrutura de Provisioning do Grafana (Monitoramento automático)
 mkdir -p grafana/provisioning/dashboards grafana/provisioning/datasources
@@ -21,7 +21,7 @@ mkdir -p grafana/provisioning/dashboards grafana/provisioning/datasources
 touch mlflow.db
 
 # 5. Permissões de escrita (Crucial para Linux/WSL2)
-chmod -R 777 logs dags config plugins data models reports artifacts mlartifacts mlflow.db
+chmod -R 777 logs dags config plugins data models reports artifacts mlartifacts mlflow.db chroma_data ollama_data
 chmod -R 755 grafana/provisioning
 
 Cria o arquivo do banco de dados (evita que o Docker crie uma pasta no lugar)
@@ -46,8 +46,12 @@ touch mlflow.db
 | **FastAPI** | http://localhost:8000 | - |
 | **Grafana** | http://localhost:3000 | admin / grafana_pass |
 | **Prometheus** | http://localhost:9090 | - |
+| **Ollama API** | http://localhost:11434 | Engine de LLM Local |
+| **ChromaDB** | http://localhost:8100 | Banco de Vetores (RAG) |
 
 ## 📝 Notas de Arquitetura
+
+- **IA & RAG:** O projeto utiliza Llama 3.2 (via Ollama) e ChromaDB para fornecer uma interface de chat inteligente sobre os dados e modelos via endpoint /chat.
 - **Persistência:** O pipeline de treino utiliza caminhos absolutos (`/opt/airflow/project`) para garantir que os modelos e logs do MLflow fiquem salvos na sua pasta local.
 - **Provisioning:** O Grafana carrega automaticamente o Data Source do Prometheus e os Dashboards salvos na pasta `grafana/provisioning` sem necessidade de configuração manual.
 - **Boot:** O primeiro carregamento pode levar cerca de 1 a 2 minutos para que o `airflow-init` finalize as migrações do banco de dados.
