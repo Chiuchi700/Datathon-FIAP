@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-
+from prometheus_fastapi_instrumentator import Instrumentator
 from src.api.llm_service import explain_prediction
 from src.api.rag_service import chat_about_model
 from src.api.schema import (
@@ -18,6 +18,8 @@ app = FastAPI(
     description="API de inferência do modelo LSTM registrado no MLflow",
     version="1.0.0",
 )
+
+Instrumentator().instrument(app).expose(app)
 
 
 @app.get("/")
