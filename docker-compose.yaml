@@ -164,7 +164,7 @@ services:
       - |
         # 1. Cria a estrutura de pastas
         mkdir -p /opt/airflow/{logs,dags,plugins,config}
-        mkdir -p /opt/airflow/project/{data/raw,data/processed,models,mlartifacts,chroma_data,ollama_data}
+        mkdir -p /opt/airflow/project/{data/raw,data/processed,models,mlartifacts}
 
         # 2. Garante o arquivo do MLflow e as PERMISSÕES (Solução para o erro de readonly)
         if [ ! -f /opt/airflow/project/mlflow.db ]; then
