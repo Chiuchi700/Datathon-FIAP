@@ -1,7 +1,7 @@
 # Datathon FIAP — Previsão do próximo fechamento da ação da Nike com LSTM, MLflow e FastAPI
 
 ## Arquitetura do projeto
-![Arquitetura do projeto](/Datathon-FIAP/DatathonArq.png)
+![Arquitetura do projeto](DatathonArq.png)
 
 
 ## Visão geral
