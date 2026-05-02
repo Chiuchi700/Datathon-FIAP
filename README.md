@@ -176,7 +176,7 @@ Responsabilidades dessa etapa:
 - gerar explicações em linguagem natural para as previsões do modelo LSTM
 - responder perguntas sobre o próprio projeto com base em documentos indexados
 - expor ferramentas MCP para previsão, consulta de metadados, explicação e perguntas via RAG
-- manter a stack de LLM/RAG desacoplada da stack principal por meio de um `docker-compose.llm.yaml`
+- subir Ollama e ChromaDB como serviços do `docker-compose.yaml` junto com o restante da stack
 
 O fluxo geral dessa camada é:
 
@@ -254,8 +254,7 @@ Datathon-FIAP/
 ├── Dockerfile                          # Construção da imagem da aplicação
 ├── README.md                           # Documentação principal do projeto
 ├── README_mlops.md                     # Versão/documentação complementar focada em MLOps
-├── docker-compose.yaml                 # Orquestração dos serviços containerizados principais
-├── docker-compose.llm.yaml             # Stack adicional para Ollama e ChromaDB
+├── docker-compose.yaml                 # Orquestração dos serviços containerizados (Airflow, FastAPI, MLflow, Prometheus, Grafana, Ollama, ChromaDB)
 ├── dvc.yaml                            # Pipeline versionada com DVC
 ├── env_example                         # Exemplo de variáveis de ambiente
 ├── params.yaml                         # Parâmetros centrais da pipeline
@@ -400,12 +399,12 @@ O diagrama completo com fluxos detalhados está em `docs/architecture_llm_rag_mc
 
 ### Infraestrutura LLM/RAG com Docker
 
-A stack de LLM e RAG roda em um Docker Compose separado para evitar impacto direto na stack principal. Com isso, é possível subir apenas a aplicação principal ou adicionar Ollama e ChromaDB quando os endpoints de explicação e chat forem necessários.
+Os serviços de LLM e RAG fazem parte do `docker-compose.yaml` principal, então sobem junto com o restante da stack.
 
-Subir apenas Ollama e ChromaDB:
+Subir tudo (incluindo Ollama e ChromaDB):
 
 ```bash
-docker compose -f docker-compose.llm.yaml up -d
+docker compose up -d
 ```
 
 Verificar o download inicial dos modelos:
@@ -414,13 +413,7 @@ Verificar o download inicial dos modelos:
 docker logs -f ollama-pull
 ```
 
-Subir a stack principal junto com LLM/RAG:
-
-```bash
-docker compose -f docker-compose.yaml -f docker-compose.llm.yaml up -d
-```
-
-Serviços do `docker-compose.llm.yaml`:
+Serviços de LLM/RAG dentro do `docker-compose.yaml`:
 
 | Serviço | Imagem | Porta | Função |
 |---|---|---:|---|

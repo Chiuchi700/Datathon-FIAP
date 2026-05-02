@@ -6,8 +6,8 @@ from src.logger_config import setup_logger
 
 logger = setup_logger("mlflow_utils")
 
-# Configurações de caminhos absolutos para o ambiente Docker
-PROJECT_ROOT = "/opt/airflow/project"
+# Default vale para o container Airflow; pode ser sobrescrito por env var (testes locais, dev fora do container).
+PROJECT_ROOT = os.getenv("PROJECT_ROOT", "/opt/airflow/project")
 DEFAULT_DB_PATH = f"sqlite:///{PROJECT_ROOT}/mlflow.db"
 DEFAULT_ARTIFACT_PATH = f"file:{PROJECT_ROOT}/mlartifacts"
 

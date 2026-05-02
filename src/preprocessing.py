@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
-# Caminho base do projeto no Docker
-PROJECT_ROOT = Path("/opt/airflow/project")
+# Default vale para o container Airflow; pode ser sobrescrito por env var (testes locais, dev fora do container).
+PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", "/opt/airflow/project"))
 
 FEATURE_COLS_DEFAULT = [
     "close",

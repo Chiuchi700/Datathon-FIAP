@@ -20,3 +20,16 @@ GRAFANA_ADMIN_PASSWORD=grafana_pass
 
 # --- LOGS DO SISTEMA ---
 LOG_LEVEL=INFO
+
+# --- LLM (Ollama) ---
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2:1b
+OLLAMA_TIMEOUT=30
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+
+# --- RAG (ChromaDB) ---
+CHROMA_HOST=localhost
+CHROMA_PORT=8100
+
+# --- MCP Server ---
+FASTAPI_BASE_URL=http://localhost:8000

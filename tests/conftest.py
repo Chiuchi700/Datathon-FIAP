@@ -1,3 +1,14 @@
+import os
+import pathlib
+
+# Em ambiente local (fora do container do Airflow) o PROJECT_ROOT padrao
+# (/opt/airflow/project) nao existe. Apontar para a raiz do repo permite que
+# os modulos do projeto, que escrevem/leem em PROJECT_ROOT no import-time,
+# sejam importados sem erro de permissao.
+os.environ.setdefault(
+    "PROJECT_ROOT", str(pathlib.Path(__file__).resolve().parents[1])
+)
+
 import numpy as np
 import pandas as pd
 import pytest

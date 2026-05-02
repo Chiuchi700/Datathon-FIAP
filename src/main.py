@@ -32,8 +32,8 @@ from src.train import build_lstm_model, predict, train_model
 load_dotenv()
 logger = setup_logger("main")
 
-# Configuração de Caminhos Globais para Docker
-PROJECT_ROOT = Path("/opt/airflow/project")
+# Default vale para o container Airflow; pode ser sobrescrito por env var (testes locais, dev fora do container).
+PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", "/opt/airflow/project"))
 DEFAULT_PARAMS_PATH = PROJECT_ROOT / "params.yaml"
 
 

@@ -1,13 +1,13 @@
+import os
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
 import yfinance as yf
 from dateutil.relativedelta import relativedelta
 
-# Caminho absoluto para garantir funcionamento dentro dos containers Docker
-PROJECT_ROOT = Path("/opt/airflow/project")
+# Default vale para o container Airflow; pode ser sobrescrito por env var (testes locais, dev fora do container).
+PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", "/opt/airflow/project"))
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
-RAW_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_RAW_PATH = RAW_DIR / "nike_raw.csv"
 
@@ -31,6 +31,7 @@ def download_nike_data(ticker="NKE", months=60):
     df.reset_index(inplace=True)
 
     # Salva no caminho absoluto do container
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
     df.to_csv(DEFAULT_RAW_PATH, index=False)
 
     return df, DEFAULT_RAW_PATH

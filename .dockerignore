@@ -1,0 +1,57 @@
+# Virtualenvs (nunca devem ir pro build context)
+.venv/
+venv/
+env/
+
+# Git e GitHub
+.git/
+.github/
+
+# Caches Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+
+# Build artifacts
+*.egg-info/
+build/
+dist/
+
+# Dados / artefatos locais
+data/raw/*.csv
+data/processed/*.csv
+artifacts/
+reports/
+models/*.pt
+models/*.pkl
+models/*.joblib
+mlartifacts/
+mlruns/
+mlflow.db
+mlflow.db-journal
+chroma_data/
+ollama_data/
+
+# Logs
+logs/
+*.log
+
+# Docker e runtime do projeto
+docker-compose*.yaml
+.env
+.env.*
+
+# Notebooks
+.ipynb_checkpoints/
+notebooks/
+
+# Sistema
+.DS_Store
