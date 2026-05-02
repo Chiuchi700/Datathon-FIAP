@@ -2,9 +2,15 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'airflow'
-    static_configs:
-      - targets: ['airflow-apiserver:8080']
+  # - job_name: 'airflow'
+  #   static_configs:
+  #     - targets: ['airflow-apiserver:8080']
+
   - job_name: 'fastapi'
+    metrics_path: '/metrics' # Garante que ele busque no lugar certo
     static_configs:
-      - targets: ['fastapi-app:8000']
+      - targets: ['fastapi-service:8000'] 
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']

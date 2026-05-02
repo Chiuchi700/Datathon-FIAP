@@ -14,6 +14,7 @@ dependencies = [
     "httpx>=0.27",
     "joblib==1.5.3",
     "fastapi>=0.115",
+    "prometheus-fastapi-instrumentator",
     "matplotlib==3.10.8",
     "mcp>=1.0",
     "mlflow>=3.10",
@@ -27,7 +28,8 @@ dependencies = [
     "seaborn==0.13.2",
     "torch",
     "uvicorn[standard]>=0.30",
-    "yfinance==0.2.66"
+    "yfinance==0.2.66",
+    "ollama"
 ]
 
 [project.optional-dependencies]

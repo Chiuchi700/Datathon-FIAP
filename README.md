@@ -1,60 +1,86 @@
-# Datathon — Previsão do próximo fechamento da Nike com LSTM em PyTorch
+# Datathon FIAP — Previsão do próximo fechamento da ação da Nike com LSTM, MLflow e FastAPI
+
+## Arquitetura do projeto
+![Arquitetura do projeto](DatathonArq.png)
+
 
 ## Visão geral
 
-Este projeto foi desenvolvido para o Datathon da pós-graduação em Engenharia de Machine Learning, com foco na previsão do comportamento do ativo **Nike (NKE)**. A solução foi evoluída para um pipeline mais próximo de um cenário de produção, com:
+Este projeto foi desenvolvido no contexto do Datathon da pós-graduação da FIAP com foco em MLOps e Engenharia de Machine Learning.
 
-- coleta automática de dados históricos via `yfinance`
-- separação entre dados **raw** e **processed**
+A solução tem como objetivo prever o comportamento de curto prazo da ação da Nike (`NKE`) a partir de uma série temporal histórica obtida via Yahoo Finance. O projeto evoluiu de um experimento inicial de modelagem para uma estrutura mais próxima de produção, com pipeline de dados, treinamento rastreável, versionamento de modelo, inferência via API e componentes de observabilidade.
+
+No estado atual, o projeto já contempla:
+
+- coleta automática de dados históricos com `yfinance`
+- separação entre dados brutos e processados
 - engenharia de atributos para séries temporais
-- treinamento de modelo **LSTM em PyTorch**
-- avaliação com métricas de regressão e comparação com **baseline ingênuo**
-- geração de gráficos e logs de execução
-- rastreabilidade com **MLflow Tracking**
-- versionamento do modelo com **MLflow Model Registry**
-- inferência carregando modelo e metadados diretamente do registry
-
-O projeto deixou de depender de artefatos locais fixos para inferência. No estado atual, o modelo treinado e os metadados de pré-processamento são registrados no MLflow e recuperados pelo alias configurado.
+- treinamento de modelo LSTM em PyTorch
+- rastreamento de experimentos com MLflow
+- versionamento de modelos via MLflow Model Registry
+- inferência desacoplada de artefatos locais fixos
+- API em FastAPI para serving
+- orquestração local com Docker Compose
+- versionamento de pipeline e dados com DVC
+- estrutura para monitoramento com Prometheus e Grafana
+- preparação de ambiente com Airflow para orquestração
+- explicação de previsões com LLM local via Ollama
+- RAG com ChromaDB para perguntas sobre o projeto
+- servidor MCP para integração com Claude Code e clientes compatíveis
 
 ---
 
 ## Objetivo do projeto
 
-O objetivo é construir uma pipeline de previsão para séries temporais financeiras capaz de estimar o **retorno do próximo dia** da ação da Nike e, a partir disso, reconstruir o **preço previsto**.
+O objetivo principal é prever o **retorno do próximo dia** da ação da Nike e, a partir dele, reconstruir o **preço previsto de fechamento**.
 
-A estratégia de prever **retorno futuro** em vez de prever diretamente o preço absoluto foi adotada para reduzir suavização excessiva e melhorar a estabilidade do treinamento. Essa lógica está implementada no pipeline principal, que calcula `target_return_1d` como alvo e reconstrói o preço previsto a partir do último fechamento conhecido. fileciteturn1file14 fileciteturn1file11
+Em vez de prever diretamente o valor absoluto do preço, a estratégia adotada foi prever o retorno diário futuro (`target_return_1d`). Essa abordagem tende a deixar o problema mais estável do ponto de vista estatístico e reduz o risco de previsões excessivamente suavizadas, algo comum quando se tenta prever preço absoluto diretamente em séries financeiras.
 
----
+### Entrada do problema
 
-## Escopo implementado até agora
+O pipeline utiliza histórico de mercado da Nike com colunas como:
 
-Atualmente o projeto cobre:
+- data
+- open
+- high
+- low
+- close
+- volume
 
-- download do histórico da ação `NKE` com janela configurável em meses
-- salvamento do dado bruto em `data/raw/nike_raw.csv`
-- geração de base tratada em `data/processed/nike_processed.csv`
-- criação de features derivadas de preço, média móvel, volatilidade e volume
-- montagem de sequências temporais para LSTM
-- split temporal em treino, validação e teste
-- escalonamento com `MinMaxScaler` ajustado somente no treino
-- treinamento de uma LSTM em PyTorch com early stopping e ajuste adaptativo de learning rate
-- logging estruturado em console e arquivo
-- registro de parâmetros, métricas, gráficos, modelo e metadados no MLflow
-- registro de versões no Model Registry com uso de alias
-- inferência carregando modelo e metadata do registry
-- notebook EDA separado do pipeline operacional
+### Saída do problema
+
+O modelo retorna:
+
+- `predicted_return`: retorno previsto para o próximo dia
+- `predicted_price`: preço de fechamento estimado para o próximo dia
 
 ---
 
 ## Arquitetura da solução
 
+O projeto está organizado como uma pipeline ponta a ponta de ML.
+
 ### 1. Coleta dos dados
 
-A coleta é feita por `download_nike_data`, que busca os dados no Yahoo Finance, ajusta o intervalo temporal e salva o arquivo bruto na pasta `data/raw`. fileciteturn1file9
+Os dados históricos da Nike são baixados com `yfinance`, usando uma janela temporal configurável em meses.
 
-### 2. Processamento
+Responsabilidades dessa etapa:
 
-O processamento padroniza nomes de colunas, trata tipos, ordena por data, remove inconsistências e cria atributos derivados. Entre as principais features atuais estão:
+- definir o ticker
+- buscar histórico ajustado
+- salvar os dados brutos em `data/raw`
+
+### 2. Processamento e engenharia de atributos
+
+Após a coleta, os dados passam por um pré-processamento que:
+
+- padroniza nomes de colunas
+- converte tipos numéricos
+- ordena por data
+- remove inconsistências
+- cria features derivadas para alimentar o modelo
+
+As principais features atualmente utilizadas são:
 
 - `close`
 - `return_1d`
@@ -62,356 +88,190 @@ O processamento padroniza nomes de colunas, trata tipos, ordena por data, remove
 - `ma_20_ratio`
 - `volatility_10`
 - `volume_zscore_20`
-- `target_return_1d` como alvo
 
-Esse fluxo está concentrado em `create_processed_data`, enquanto `save_processed_data` persiste a base tratada em disco. fileciteturn1file15
+Também é criado o alvo:
 
-### 3. Preparação das sequências
+- `target_return_1d`
 
-A função `prepare_sequences` transforma a base em janelas temporais, separa treino/validação/teste e devolve também artefatos importantes do pré-processamento, como:
+### 3. Criação das sequências temporais
 
-- `scaler`
-- `feature_cols`
-- `seq_length`
+Como o modelo é uma LSTM, os dados são transformados em janelas temporais com tamanho configurável (`seq_length`).
 
-Esses artefatos são fundamentais para a etapa de inferência, pois garantem o mesmo padrão usado no treinamento. O `MinMaxScaler` é ajustado apenas com o conjunto de treino para evitar leakage. fileciteturn1file14
+Nessa etapa também ocorre:
 
-### 4. Modelo
+- split temporal entre treino, validação e teste
+- ajuste do `MinMaxScaler` apenas no conjunto de treino
+- geração dos artefatos necessários para reuso em inferência:
+  - `scaler`
+  - `feature_cols`
+  - `seq_length`
 
-O modelo atual foi migrado de TensorFlow para **PyTorch**. A arquitetura é composta por:
+### 4. Treinamento do modelo
 
-- `LSTM` bidirecional com 64 unidades na primeira camada
-- `Dropout(0.15)`
-- segunda `LSTM` com 32 unidades
-- mais um `Dropout(0.15)`
-- camadas densas `32 -> 16 -> 1`
+O modelo foi implementado em **PyTorch**.
 
-O treinamento usa:
+Arquitetura atual:
+
+- 1ª camada LSTM bidirecional com 64 unidades
+- Dropout
+- 2ª camada LSTM com 32 unidades
+- camadas densas intermediárias
+- camada final de regressão com saída escalar
+
+Estratégias de treino:
 
 - `HuberLoss`
 - `Adam`
 - `ReduceLROnPlateau`
-- `EarlyStopping` customizado
-
-Tudo isso está implementado no módulo de treino. fileciteturn1file13 fileciteturn1file18
+- `EarlyStopping`
 
 ### 5. Avaliação
 
-Depois do treino, o pipeline gera previsões de retorno no conjunto de teste, reconstrói o preço previsto e compara com o preço real e com um baseline ingênuo. As métricas atuais são:
+Depois do treino, o pipeline gera previsões no conjunto de teste e compara:
+
+- preço real
+- preço previsto
+- baseline ingênuo
+
+As métricas principais são:
 
 - `RMSE`
 - `MAE`
 - `MAPE`
 - `Direction Accuracy`
-- comparação com `naive_rmse` e `naive_mae`
+- comparação com baseline por `naive_rmse` e `naive_mae`
 
-Além disso, o projeto salva gráficos de loss e de previsão versus real. fileciteturn1file11 fileciteturn1file17
+### 6. Tracking e versionamento com MLflow
 
-### 6. Tracking e Registry
+O projeto utiliza MLflow para:
 
-O projeto foi evoluído para usar **MLflow** com backend local em `sqlite:///mlflow.db` por padrão, além de suporte a artifact root local em `file:./mlartifacts`. A configuração central está em `mlflow_utils.py`, que prepara tracking URI, registry URI e experimento. fileciteturn0file1
+- registrar parâmetros de treino
+- registrar métricas
+- salvar gráficos
+- armazenar artefatos do run
+- logar o modelo PyTorch
+- salvar metadados do pré-processamento
+- registrar novas versões do modelo no Model Registry
+- associar aliases como `candidate` e `champion`
 
-Ao final do treino, o pipeline:
+### 7. Serving e inferência
 
-- registra parâmetros e métricas da execução
-- salva gráficos e logs como artefatos
-- loga o modelo PyTorch no MLflow
-- salva os metadados de pré-processamento como artefato
-- registra uma nova versão no **Model Registry**
-- define alias para a versão, como `candidate` ou `champion`
+A inferência não depende mais de um `model.pkl`, `scaler.pkl` ou arquivo local fixo como fonte principal.
 
-Esse fluxo está implementado em `main.py` e `model_registry.py`. fileciteturn0file8 fileciteturn0file6
+O fluxo atual utiliza:
 
-### 7. Inferência
+- carregamento do modelo a partir do Model Registry
+- recuperação do metadata do pré-processamento
+- reconstrução da janela de entrada
+- geração do retorno e do preço previsto
 
-A inferência foi ajustada para carregar o modelo e os metadados diretamente do **Model Registry**, sem depender de um `scaler.pkl` ou modelo local em uma pasta fixa. A função `predict_next_day`:
+Além da inferência por script, o projeto já possui uma API FastAPI para exposição do modelo.
 
-- configura as URIs do MLflow
-- baixa os metadados da versão apontada por alias
-- carrega o modelo registrado
-- transforma a janela de entrada com o mesmo scaler do treino
-- retorna o **retorno previsto**
-- opcionalmente loga também o **preço previsto** quando recebe `last_close`
+### 8. LLM, RAG e MCP
 
-Esse comportamento já aparece no script de inferência atual. fileciteturn0file9
+Além do serving tradicional do modelo, o projeto também possui uma camada de inteligência generativa para melhorar a experiência de uso e explicabilidade da solução. Essa camada utiliza **Ollama** para execução local de modelos de linguagem, **ChromaDB** como vector store para RAG e um **servidor MCP** para integração com clientes compatíveis, como Claude Code.
+
+Responsabilidades dessa etapa:
+
+- gerar explicações em linguagem natural para as previsões do modelo LSTM
+- responder perguntas sobre o próprio projeto com base em documentos indexados
+- expor ferramentas MCP para previsão, consulta de metadados, explicação e perguntas via RAG
+- manter a stack de LLM/RAG desacoplada da stack principal por meio de um `docker-compose.llm.yaml`
+
+O fluxo geral dessa camada é:
+
+1. A API recebe uma requisição de previsão, explicação ou pergunta.
+2. Para previsão, a FastAPI chama o modelo LSTM registrado no MLflow Model Registry.
+3. Para explicação, o retorno da previsão é enviado ao Ollama para geração de texto em linguagem natural.
+4. Para perguntas sobre o projeto, documentos como `README.md` e `params.yaml` são indexados no ChromaDB.
+5. Os chunks mais relevantes são recuperados e enviados como contexto para a LLM gerar a resposta.
+
+### 9. Observabilidade e operação
+
+O repositório também inclui componentes de suporte operacional:
+
+- `docker-compose.yaml`
+- pasta `prometheus`
+- pasta `grafana/provisioning`
+- workflows em `.github/workflows`
+- estrutura de testes em `tests`
+- uso de `logs/pipeline.log` para rastreabilidade local
+- estrutura com Airflow para orquestração
 
 ---
 
-## Estrutura sugerida do projeto
+## Estrutura do projeto
+
+Abaixo está a estrutura lógica do projeto com os principais diretórios e scripts utilizados na solução:
 
 ```text
-DATATHON/
-├── artifacts/
-│   └── plots/
-│       ├── prediction_vs_real.png
-│       └── training_loss.png
+Datathon-FIAP/
+├── .dvc/                               # Metadados internos do DVC
+├── .claude/
+│   └── mcp.json                        # Configuração do servidor MCP para clientes compatíveis
+├── .github/
+│   └── workflows/
+│       └── tests.yml                   # Workflow de CI para execução automatizada de testes
 ├── data/
-│   ├── raw/
-│   │   └── nike_raw.csv
-│   └── processed/
-│       └── nike_processed.csv
+│   ├── raw/                            # Dados brutos coletados
+│   └── processed/                      # Dados tratados para treino
 ├── docs/
-│   └── architecture_llm_rag_mcp.md
-├── logs/
-│   └── pipeline.log
-├── mlartifacts/
+│   └── architecture_llm_rag_mcp.md      # Diagrama e detalhamento da arquitetura LLM/RAG/MCP
+├── fast_api/
+│   └── main.py                         # Arquivo alternativo/auxiliar para inicialização da API
+├── grafana/
+│   └── provisioning/
+│       ├── dashboards/                 # Provisionamento automático de dashboards do Grafana
+│       └── datasources/                # Provisionamento automático de data sources do Grafana
+├── logs/                               # Logs gerados pela aplicação
+├── notebooks/                          # Estudos, EDA e experimentos
+├── outputs/                            # Artefatos locais gerados pelo treino
+├── prometheus/                         # Configurações de monitoramento
 ├── src/
 │   ├── api/
-│   │   ├── app.py
-│   │   ├── schema.py
-│   │   ├── service.py
-│   │   ├── llm_service.py
-│   │   └── rag_service.py
+│   │   ├── app.py                      # Aplicação principal da FastAPI
+│   │   ├── schema.py                   # Schemas Pydantic de request/response da API
+│   │   └── service.py                  # Regras de negócio da API e chamada de inferência
 │   ├── inference/
-│   │   └── inference.py
-│   ├── data_loader.py
-│   ├── logger_config.py
-│   ├── mlflow_utils.py
-│   ├── model_registry.py
-│   ├── preprocessing.py
-│   ├── train.py
-│   └── mcp_server.py
+│   │   └── inference.py                # Inferência local usando modelo do registry
+│   ├── data_loader.py                  # Download, leitura e persistência de dados brutos
+│   ├── logger_config.py                # Configuração central de logging
+│   ├── main.py                         # Pipeline principal de treino, avaliação e registro no MLflow
+│   ├── mlflow_utils.py                 # Configuração de tracking e registry no MLflow
+│   ├── model_registry.py               # Registro, alias e carregamento de modelos no MLflow
+│   ├── mcp_server.py                   # Servidor MCP para integração com clientes externos
+│   ├── prepare_data.py                 # Pipeline de preparação dos dados raw e processed
+│   ├── preprocessing.py                # Tratamento dos dados e criação das features/sequências
+│   └── train.py                        # Arquitetura LSTM, treino, avaliação e predição
 ├── tests/
-│   ├── test_api_endpoints.py
-│   ├── test_api_schema.py
-│   ├── test_api_service.py
-│   ├── test_llm_service.py
-│   ├── test_rag_service.py
-│   └── test_mcp_server.py
-├── .claude/
-│   └── mcp.json
-├── docker-compose.yaml
-├── docker-compose.llm.yaml
-├── pyproject.toml
-├── mlflow.db
-└── README.md
+│   ├── __init__.py                     # Marca o diretório de testes como pacote Python
+│   ├── conftest.py                     # Fixtures e configurações compartilhadas de testes
+│   ├── test_api_endpoints.py           # Testes dos endpoints expostos pela API
+│   ├── test_api_schema.py              # Testes de validação dos schemas Pydantic
+│   └── test_api_service.py             # Testes da camada de serviço da API
+├── .dvcignore                          # Arquivos ignorados pelo DVC
+├── .gitignore                          # Arquivos ignorados pelo Git
+├── Dockerfile                          # Construção da imagem da aplicação
+├── README.md                           # Documentação principal do projeto
+├── README_mlops.md                     # Versão/documentação complementar focada em MLOps
+├── docker-compose.yaml                 # Orquestração dos serviços containerizados principais
+├── docker-compose.llm.yaml             # Stack adicional para Ollama e ChromaDB
+├── dvc.yaml                            # Pipeline versionada com DVC
+├── env_example                         # Exemplo de variáveis de ambiente
+├── params.yaml                         # Parâmetros centrais da pipeline
+├── pyproject.toml                      # Dependências e configuração do projeto
 ```
 
-> Observação: a estrutura acima representa a organização esperada do repositório. Nos arquivos compartilhados nesta conversa, alguns módulos apareceram de forma isolada, mas o código já está escrito considerando o pacote `src`. fileciteturn1file4
 
----
+## Camada de LLM, RAG e MCP
 
-## Principais decisões técnicas
+A branch de LLM adiciona uma camada complementar à API de previsão. O objetivo não é substituir o modelo LSTM, mas enriquecer o projeto com explicações em linguagem natural, perguntas sobre a documentação e integração com ferramentas externas via MCP.
 
-### Prever retorno em vez de preço absoluto
+### Explicação de previsões com Ollama
 
-A modelagem passou a prever `target_return_1d`, e não o valor direto de `close`. Isso melhora a coerência estatística do problema e reduz o risco de previsões excessivamente suavizadas. fileciteturn1file15
+O endpoint `/explain` recebe o último preço de fechamento conhecido, executa a previsão com o modelo LSTM e envia o resultado para uma LLM local via Ollama. A resposta final combina os valores previstos com uma explicação textual mais amigável.
 
-### Evitar vazamento de informação
-
-O `MinMaxScaler` é treinado somente com a partição de treino, o que torna a validação e o teste mais confiáveis. fileciteturn1file14
-
-### Separar EDA do pipeline operacional
-
-O notebook `01_eda_nike.ipynb` ficou responsável pela análise exploratória e pelos insights iniciais, enquanto `main.py` ficou responsável por um fluxo mais operacional, com persistência de dados e artefatos. Essa separação já estava descrita no README anterior e continua válida. fileciteturn1file0
-
-### Centralizar inferência no Model Registry
-
-O estado atual do projeto já reflete uma evolução importante: o modelo de inferência não é mais buscado em uma pasta local fixa, mas sim recuperado do MLflow Registry com base em nome e alias do modelo. fileciteturn0file6 fileciteturn0file9
-
----
-
-## Como executar o projeto
-
-### 1. Criar e ativar ambiente virtual
-
-No Windows:
-
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-```
-
-No Linux/macOS:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 2. Instalar dependências
-
-O projeto usa `pyproject.toml` como fonte principal de dependências:
-
-```bash
-pip install -e ".[dev]"
-```
-
-As dependências incluem `torch`, `mlflow`, `yfinance`, `scikit-learn`, `pandas`, `numpy`, `matplotlib` e pacotes de notebook para EDA. fileciteturn0file7
-
-### 3. Executar o pipeline principal
-
-```bash
-python main.py
-```
-
-Esse comando executa o fluxo completo:
-
-- baixa os dados da Nike
-- cria a base processada
-- monta as sequências
-- treina o modelo
-- calcula métricas
-- gera gráficos
-- registra a execução no MLflow
-- registra a versão do modelo no Model Registry
-
-Esse comportamento está descrito no pipeline do `main.py`. fileciteturn0file8
-
----
-
-## Variáveis de ambiente principais
-
-O projeto utiliza variáveis de ambiente para controlar comportamento de treino, tracking e registry:
-
-```bash
-MLFLOW_TRACKING_URI=sqlite:///mlflow.db
-MLFLOW_REGISTRY_URI=sqlite:///mlflow.db
-MLFLOW_ARTIFACT_ROOT=file:./mlartifacts
-MLFLOW_EXPERIMENT_NAME=nike_lstm_forecasting
-REGISTER_MODEL=true
-REGISTERED_MODEL_NAME=nike_lstm_forecaster
-MODEL_ALIAS=candidate
-SAVE_PLOTS=true
-PLOTS_DIR=artifacts/plots
-LOG_LEVEL=INFO
-LOG_DIR=logs
-```
-
-Os valores acima refletem os defaults já definidos no código. fileciteturn0file1 fileciteturn0file8 fileciteturn0file9
-
----
-
-## Como visualizar o MLflow
-
-O pipeline já consegue gravar diretamente no backend local `sqlite:///mlflow.db`, mesmo sem depender de um servidor HTTP ativo no momento da execução. Depois, a interface do MLflow pode ser aberta separadamente apontando para o mesmo backend. Essa lógica está documentada no utilitário de configuração do MLflow. fileciteturn0file1
-
-Exemplo de comando para subir a UI localmente:
-
-```bash
-mlflow server \
-  --backend-store-uri sqlite:///mlflow.db \
-  --artifacts-destination file:./mlartifacts \
-  --host 127.0.0.1 \
-  --port 5000
-```
-
-Com a UI ativa, será possível:
-
-- acompanhar runs do experimento
-- comparar métricas entre execuções
-- visualizar artefatos
-- inspecionar versões do modelo registradas
-- validar aliases como `candidate` e `champion`
-
----
-
-## Como executar a inferência
-
-### Inferência pelo script
-
-Para rodar a inferência local usando a última janela disponível no dado bruto processado:
-
-```bash
-python -m src.inference.inference
-```
-
-O script:
-
-- lê `data/raw/nike_raw.csv`
-- recria a base processada
-- recupera `feature_cols` e `seq_length` do registry
-- monta a última janela
-- carrega o modelo registrado
-- imprime o retorno previsto e o preço previsto
-
-Esse fluxo está presente no arquivo de inferência. fileciteturn0file9
-
-### Inferência programática
-
-Também é possível usar a função `predict_next_day(data_last_n_days, last_close=None)` em outro módulo ou API. A entrada precisa respeitar exatamente:
-
-- mesmo `seq_length`
-- mesma ordem de `feature_cols`
-- mesma estrutura usada no treinamento
-
-Caso seja passado apenas um vetor unidimensional, a função tenta reorganizar a entrada; porém, o formato final ainda precisa ser compatível com o scaler treinado. fileciteturn0file9
-
----
-
-## Saídas esperadas da execução
-
-Ao final do `main.py`, espera-se encontrar:
-
-### Em disco
-
-- `data/raw/nike_raw.csv`
-- `data/processed/nike_processed.csv`
-- `artifacts/plots/training_loss.png`
-- `artifacts/plots/prediction_vs_real.png`
-- `logs/pipeline.log`
-- `mlflow.db`
-- `mlartifacts/` com os artefatos do MLflow
-
-### No MLflow
-
-- parâmetros do treino
-- métricas do modelo e do baseline
-- gráficos
-- logs
-- metadados de pré-processamento
-- modelo logado no run
-- versão registrada no Model Registry
-- alias associado à versão do modelo
-
-Importante: o README antigo mencionava `src/models/lstm_model.keras` e `src/models/scaler.pkl`, mas isso não representa mais o fluxo atual do projeto. Agora o armazenamento principal dos artefatos de inferência ocorre via **MLflow + Model Registry**. fileciteturn1file0 fileciteturn0file6 fileciteturn0file8
-
----
-
-## Logging
-
-O projeto já possui um logger centralizado com:
-
-- saída em console
-- persistência em arquivo `logs/pipeline.log`
-- nível configurável por variável de ambiente
-
-Isso ajuda tanto na execução local quanto em futuras execuções via Docker ou API. fileciteturn0file3
-
----
-
-## EDA
-
-O notebook `01_eda_nike.ipynb` foi mantido como etapa separada para análise exploratória. Ele sustenta a leitura de negócio e ajuda a justificar decisões de modelagem, como:
-
-- comportamento histórico do fechamento
-- dinâmica dos retornos diários
-- médias móveis
-- volatilidade
-- sinais relacionados a volume
-- correlação entre variáveis derivadas
-
-A separação entre notebook exploratório e pipeline principal é uma das melhorias de organização do projeto. fileciteturn1file0
-
----
-
-## Limitações atuais
-
-Apesar da evolução da pipeline, ainda existem pontos de atenção naturais para séries temporais financeiras:
-
-- previsão de 1 dia à frente continua sendo um problema de alta variabilidade
-- o baseline ingênuo ainda é uma referência importante e precisa ser superado com consistência
-- o modelo depende da qualidade e da estabilidade dos sinais derivados criados
-- ainda não há, neste repositório, uma API final documentada como camada oficial de serving
-- o pipeline ainda pode ser expandido com novos experimentos e mais validações temporais
-
----
-
-## LLM — Explicacao de previsoes com Ollama
-
-O projeto integra uma LLM local via **Ollama** para gerar explicacoes em linguagem natural das previsoes do modelo LSTM.
-
-### Endpoint `/explain`
+Exemplo de chamada:
 
 ```bash
 curl -X POST http://localhost:8000/explain \
@@ -419,40 +279,37 @@ curl -X POST http://localhost:8000/explain \
   -d '{"close": 95.5}'
 ```
 
-Resposta:
+Exemplo de resposta:
+
 ```json
 {
-  "explanation": "O modelo preve alta moderada para a Nike amanha...",
+  "explanation": "O modelo prevê alta moderada para a Nike amanhã...",
   "close": 95.5,
   "predicted_price": 95.9,
   "predicted_return": 0.0042
 }
 ```
 
-O fluxo: recebe o ultimo close -> chama o modelo LSTM para prever -> envia o resultado ao Ollama para gerar a explicacao.
+Variáveis de ambiente relacionadas:
 
-### Configuracao
-
-| Variavel | Default | Descricao |
-|----------|---------|-----------|
+| Variável | Valor padrão | Descrição |
+|---|---:|---|
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | URL do servidor Ollama |
-| `OLLAMA_MODEL` | `llama3.2:1b` | Modelo para geracao de texto |
-| `OLLAMA_TIMEOUT` | `30` | Timeout em segundos |
+| `OLLAMA_MODEL` | `llama3.2:1b` | Modelo usado para geração de texto |
+| `OLLAMA_TIMEOUT` | `30` | Timeout das chamadas ao Ollama, em segundos |
 
----
+### RAG para perguntas sobre o projeto
 
-## RAG — Perguntas sobre o projeto com ChromaDB
+O projeto também implementa RAG com **ChromaDB** e **Ollama**. Essa abordagem permite fazer perguntas sobre a própria documentação do projeto, usando os documentos indexados como contexto para a resposta da LLM.
 
-O projeto implementa RAG (Retrieval-Augmented Generation) usando **ChromaDB** como vector store e **Ollama** para embeddings e geracao de respostas.
+Funcionamento resumido:
 
-### Como funciona
+1. Documentos do projeto, como `README.md` e `params.yaml`, são indexados no ChromaDB.
+2. Os embeddings são gerados pelo modelo `nomic-embed-text` via Ollama.
+3. Ao receber uma pergunta, o sistema busca os chunks mais relevantes no vector store.
+4. Os chunks recuperados são enviados como contexto para a LLM gerar a resposta.
 
-1. Documentos do projeto (`README.md`, `params.yaml`) sao indexados no ChromaDB
-2. Embeddings sao gerados pelo modelo `nomic-embed-text` via Ollama
-3. Ao receber uma pergunta, o sistema busca os chunks mais relevantes
-4. Os chunks sao enviados como contexto para a LLM gerar a resposta
-
-### Endpoint `/chat`
+Exemplo de chamada ao endpoint `/chat`:
 
 ```bash
 curl -X POST http://localhost:8000/chat \
@@ -460,7 +317,8 @@ curl -X POST http://localhost:8000/chat \
   -d '{"question": "Qual o seq_length do modelo?"}'
 ```
 
-Resposta:
+Exemplo de resposta:
+
 ```json
 {
   "answer": "O modelo usa seq_length de 60 dias...",
@@ -468,34 +326,28 @@ Resposta:
 }
 ```
 
-### Configuracao
+Variáveis de ambiente relacionadas:
 
-| Variavel | Default | Descricao |
-|----------|---------|-----------|
+| Variável | Valor padrão | Descrição |
+|---|---:|---|
 | `CHROMA_HOST` | `localhost` | Host do ChromaDB |
 | `CHROMA_PORT` | `8100` | Porta do ChromaDB |
-| `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text` | Modelo para embeddings |
+| `OLLAMA_EMBEDDING_MODEL` | `nomic-embed-text` | Modelo usado para geração de embeddings |
 
----
+### Servidor MCP
 
-## MCP Server — Integracao com Claude Code
+O projeto inclui um servidor **MCP (Model Context Protocol)** para permitir que clientes compatíveis interajam com a API de previsão. Na prática, o MCP funciona como uma camada de ferramentas que chama a FastAPI por HTTP.
 
-O projeto inclui um servidor **MCP (Model Context Protocol)** que permite ao Claude Code (ou qualquer cliente MCP) interagir diretamente com a API de previsao.
+Ferramentas disponíveis:
 
-### Tools disponiveis
+| Tool | Descrição |
+|---|---|
+| `predict(close)` | Prevê o próximo preço de fechamento |
+| `model_info()` | Retorna informações do modelo registrado |
+| `explain_prediction(close)` | Gera explicação em linguagem natural para uma previsão |
+| `ask_about_model(question)` | Responde perguntas sobre o projeto usando RAG |
 
-| Tool | Descricao |
-|------|-----------|
-| `predict(close)` | Preve o proximo preco de fechamento |
-| `model_info()` | Retorna informacoes do modelo |
-| `explain_prediction(close)` | Gera explicacao em linguagem natural |
-| `ask_about_model(question)` | Pergunta sobre o projeto via RAG |
-
-### Configuracao no Claude Code
-
-O arquivo `.claude/mcp.json` ja esta configurado. Para usar, basta ter a FastAPI rodando em `http://localhost:8000`.
-
-Ou configurar manualmente:
+O arquivo `.claude/mcp.json` já pode ser usado para configuração com Claude Code. Para configurar manualmente, utilize uma estrutura semelhante:
 
 ```json
 {
@@ -511,36 +363,11 @@ Ou configurar manualmente:
 }
 ```
 
----
+### Arquitetura da camada LLM/RAG/MCP
 
-## Infraestrutura LLM/RAG com Docker
+O diagrama completo com fluxos detalhados está em `docs/architecture_llm_rag_mcp.md`.
 
-Os servicos de LLM e RAG rodam em um Docker Compose separado para nao impactar a stack principal:
-
-```bash
-# Subir Ollama + ChromaDB
-docker compose -f docker-compose.llm.yaml up -d
-
-# Aguardar download dos modelos (~5 min na primeira vez)
-docker logs -f ollama-pull
-
-# Subir tudo junto (stack principal + LLM/RAG)
-docker compose -f docker-compose.yaml -f docker-compose.llm.yaml up -d
-```
-
-### Servicos do docker-compose.llm.yaml
-
-| Servico | Imagem | Porta | Funcao |
-|---------|--------|-------|--------|
-| `ollama` | `ollama/ollama:latest` | 11434 | Servidor LLM + embeddings |
-| `ollama-pull` | `ollama/ollama:latest` | - | Init container que baixa os modelos |
-| `chromadb` | `chromadb/chroma:latest` | 8100 | Vector store para RAG |
-
-### Diagrama de arquitetura
-
-O diagrama completo com fluxos detalhados esta em [`docs/architecture_llm_rag_mcp.md`](docs/architecture_llm_rag_mcp.md).
-
-```
+```text
 ┌──────────────────┐
 │   Claude Code    │
 │  (MCP Client)    │
@@ -571,15 +398,158 @@ O diagrama completo com fluxos detalhados esta em [`docs/architecture_llm_rag_mc
                               └──────────┘     └───────────┘
 ```
 
----
+### Infraestrutura LLM/RAG com Docker
 
-## Proximos passos recomendados
+A stack de LLM e RAG roda em um Docker Compose separado para evitar impacto direto na stack principal. Com isso, é possível subir apenas a aplicação principal ou adicionar Ollama e ChromaDB quando os endpoints de explicação e chat forem necessários.
 
-Os proximos passos mais naturais para evolucao do projeto sao:
+Subir apenas Ollama e ChromaDB:
 
-1. promover a versao validada para alias `champion`
-2. comparar diferentes janelas temporais e conjuntos de features
-3. testar modelos adicionais como GRU, TCN ou abordagens baseadas em boosting para benchmark
-4. expandir RAG com dados externos (noticias, SEC filings)
-5. adicionar sentiment analysis como feature do LSTM
-6. incluir resultados quantitativos finais no README apos fechamento dos experimentos
+```bash
+docker compose -f docker-compose.llm.yaml up -d
+```
+
+Verificar o download inicial dos modelos:
+
+```bash
+docker logs -f ollama-pull
+```
+
+Subir a stack principal junto com LLM/RAG:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.llm.yaml up -d
+```
+
+Serviços do `docker-compose.llm.yaml`:
+
+| Serviço | Imagem | Porta | Função |
+|---|---|---:|---|
+| `ollama` | `ollama/ollama:latest` | `11434` | Servidor de LLM e embeddings |
+| `ollama-pull` | `ollama/ollama:latest` | - | Init container responsável por baixar os modelos |
+| `chromadb` | `chromadb/chroma:latest` | `8100` | Vector store utilizado pelo RAG |
+
+## Containerização e Orquestração
+
+O projeto utiliza Docker para padronizar o ambiente de execução e Docker Compose para subir uma stack integrada com componentes de orquestração, serving, rastreabilidade e monitoramento.
+
+### Papel do Dockerfile
+
+O `Dockerfile` é responsável por empacotar a aplicação Python em uma imagem única, contendo:
+
+- código-fonte do projeto
+- dependências do ambiente
+- configuração de execução
+- ponto de entrada da aplicação
+
+Isso garante reprodutibilidade entre ambientes locais, testes e deploy.
+
+### Papel do Docker Compose
+
+O `docker-compose.yaml` orquestra os serviços do projeto, permitindo subir a stack completa com um único comando.
+
+Na configuração proposta para o ambiente integrado, a stack inclui:
+
+- Airflow 3 para orquestração
+- FastAPI para serving do modelo
+- MLflow UI para tracking e Model Registry
+- Prometheus para coleta de métricas
+- Grafana para visualização e monitoramento
+
+### Preparação do ambiente
+
+Antes de subir os containers, é necessário criar a estrutura de pastas usada pela stack e garantir permissões adequadas para escrita de logs, dados, artefatos e configurações.
+
+No terminal, execute:
+
+```bash
+# 1. Pastas do Airflow e API
+mkdir -p dags logs config plugins fast_api prometheus
+
+# 2. Pastas do Projeto ML (Onde o pipeline grava os resultados)
+mkdir -p data/raw data/processed models reports artifacts/plots mlartifacts chroma_data ollama_data
+
+# 3. Estrutura de Provisioning do Grafana (Monitoramento automático)
+mkdir -p grafana/provisioning/dashboards grafana/provisioning/datasources
+
+# 4. Cria o arquivo do banco de dados (evita que o Docker crie uma pasta no lugar)
+touch mlflow.db
+
+# 5. Permissões de escrita (Crucial para Linux/WSL2)
+chmod -R 777 logs dags config plugins data models reports artifacts mlartifacts mlflow.db chroma_data ollama_data
+chmod -R 755 grafana/provisioning
+```
+
+> **Nota para Linux/WSL2:** caso o Grafana apresente erro de leitura no boot, execute:
+> `sudo chown -R 472:0 grafana/provisioning`
+
+### Como iniciar a infraestrutura
+
+1. Certifique-se de que o arquivo `.env` está na raiz do projeto.
+2. Ajuste o `AIRFLOW_UID` com o valor retornado por `id -u`, quando aplicável.
+3. Garanta que `datasource.yaml`, `dashboards.yaml` e o dashboard exportado em `.json` estejam dentro de `grafana/provisioning/`.
+4. Suba a infraestrutura:
+
+```bash
+docker compose up -d
+```
+
+Para reconstruir as imagens ao subir os serviços:
+
+```bash
+docker compose up -d --build
+```
+
+Para derrubar a infraestrutura:
+
+```bash
+docker compose down
+```
+
+### Serviços, portas e acessos
+
+A stack do projeto é composta por serviços que atuam de forma integrada para orquestração, inferência, rastreabilidade e monitoramento.
+
+| Serviço | Função | Porta/URL de referência | Credenciais |
+|---|---|---|---|
+| Airflow 3 | Orquestração dos fluxos e pipelines | `http://localhost:8080` | `admin / admin_pass` *(ver `.env`)* |
+| MLflow UI | Tracking de experimentos e Model Registry | `http://localhost:5001` | - |
+| FastAPI | Expor endpoints de inferência, explicação e chat | `http://localhost:8000` | - |
+| Grafana | Visualização de métricas e dashboards | `http://localhost:3000` | `admin / grafana_pass` |
+| Prometheus | Monitoramento e coleta de métricas | `http://localhost:9090` | - |
+| Ollama | Servidor local de LLM e embeddings | `http://localhost:11434` | - |
+| ChromaDB | Vector store utilizado pelo RAG | `http://localhost:8100` | - |
+
+> Ajuste essa tabela conforme a configuração final definida no `docker-compose.yaml` do projeto.
+
+### Relação entre Dockerfile e Docker Compose
+
+A explicação do `Dockerfile` deve aparecer junto da seção de containerização porque ele não atua de forma isolada dentro da arquitetura do projeto.
+
+- O **Dockerfile** define como a imagem da aplicação é construída.
+- O **Docker Compose** define como os serviços são levantados, conectados e executados em conjunto.
+
+Em outras palavras:
+
+- o `Dockerfile` empacota a aplicação
+- o `docker-compose.yaml` organiza a execução da stack completa
+
+Essa combinação é importante porque permite que a aplicação, o MLflow e os componentes de monitoramento sejam executados de forma padronizada, integrada e reproduzível.
+
+### Notas de arquitetura da stack
+
+- **Persistência:** o pipeline de treino utiliza caminhos absolutos como `/opt/airflow/project` para que modelos, artefatos e logs do MLflow fiquem persistidos em volumes locais.
+- **Provisioning:** o Grafana pode carregar automaticamente o data source do Prometheus e dashboards salvos em `grafana/provisioning`, evitando configuração manual após o boot.
+- **Boot inicial:** o primeiro carregamento da infraestrutura pode levar alguns minutos até que o serviço `airflow-init` finalize as migrações do banco e prepare o ambiente.
+- **IA & RAG:** O projeto utiliza Llama 3.2 (via Ollama) e ChromaDB para fornecer uma interface de chat inteligente sobre os dados e modelos via endpoint /chat.
+
+
+## Próximos passos recomendados
+
+Algumas evoluções naturais para o projeto são:
+
+- promover a versão validada do modelo para o alias `champion` no MLflow Model Registry
+- comparar diferentes janelas temporais e conjuntos de features
+- testar modelos adicionais, como GRU, TCN ou abordagens baseadas em boosting, para benchmark
+- expandir o RAG com dados externos, como notícias e documentos financeiros
+- adicionar análise de sentimento como feature complementar para o modelo de previsão
+- incluir os resultados quantitativos finais no README após o fechamento dos experimentos

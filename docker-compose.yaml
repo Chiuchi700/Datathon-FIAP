@@ -26,6 +26,10 @@ x-airflow-common:
     AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-airflow_jwt_secret}
     AIRFLOW__API_AUTH__JWT_ISSUER: ${AIRFLOW__API_AUTH__JWT_ISSUER:-airflow}
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    AIRFLOW__METRICS__METRICS_ALLOW_LIST: ".*"
+    AIRFLOW__METRICS__STATSD_ON: "True"
+    AIRFLOW__METRICS__STATSD_HOST: "prometheus"
+    AIRFLOW__METRICS__STATSD_PORT: "9125"
     # _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     # O Airflow vai ler o pyproject.toml que "apareceu" em /opt/airflow/project
     #_PIP_ADDITIONAL_REQUIREMENTS: "-e /opt/airflow/project"
@@ -70,6 +74,7 @@ services:
 
   airflow-apiserver:
     <<: *airflow-common
+    container_name: airflow-apiserver
     command: api-server
     ports:
       - "8080:8080"
@@ -87,6 +92,7 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
+    container_name: airflow-scheduler
     command: scheduler
     restart: always
     depends_on:
@@ -95,6 +101,7 @@ services:
 
   airflow-dag-processor:
     <<: *airflow-common
+    container_name: airflow-dag-processor
     command: dag-processor
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
@@ -110,6 +117,7 @@ services:
 
   airflow-worker:
     <<: *airflow-common
+    container_name: airflow-worker
     command: celery worker
     healthcheck:
       # yamllint disable rule:line-length
@@ -133,6 +141,7 @@ services:
 
   airflow-triggerer:
     <<: *airflow-common
+    container_name: airflow-triggerer
     command: triggerer
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
@@ -149,15 +158,30 @@ services:
   airflow-init:
     <<: *airflow-common
     entrypoint: /bin/bash
-    user: "${AIRFLOW_UID:-50000}:0"
+    # user: "${AIRFLOW_UID:-50000}:0"
+    user: "0:0"
     command:
       - -c
       - |
+        # 1. Pastas e Permissões como ROOT
         mkdir -p /opt/airflow/{logs,dags,plugins,config}
-        mkdir -p /opt/airflow/project/{data/raw,data/processed,models,reports,artifacts/plots,mlartifacts}
-        # chown -R "${AIRFLOW_UID:-50000}:0" /opt/airflow
-        # O migrate v3 processa as variáveis _AIRFLOW_WWW_USER automaticamente
-        /entrypoint airflow db migrate
+        mkdir -p /opt/airflow/project/{data/raw,data/processed,models,mlartifacts}
+        chmod -R 777 /opt/airflow/logs /opt/airflow/dags /opt/airflow/plugins /opt/airflow/config /opt/airflow/project
+        
+        if [ ! -f /opt/airflow/project/mlflow.db ]; then
+          touch /opt/airflow/project/mlflow.db
+        fi
+        chmod 666 /opt/airflow/project/mlflow.db
+
+        /usr/bin/dumb-init -- /entrypoint airflow db migrate
+
+        /usr/bin/dumb-init -- /entrypoint airflow users create \
+          --username "${VISITANTE_USERNAME}" \
+          --password "${VISITANTE_PASSWORD}" \
+          --firstname Visitante \
+          --lastname Datathon \
+          --role Viewer \
+          --email visitante@example.com || true
     environment:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
@@ -169,18 +193,34 @@ services:
       _PIP_ADDITIONAL_REQUIREMENTS: ''
 
   fastapi-app:
-    image: python:3.12-slim
+    build:
+      context: .
+      dockerfile: src/api/Dockerfile
+    image: meu-projeto-ml-fastapi:latest  # Nomeia a imagem gerada
     container_name: fastapi-service
+    restart: always
     dns:
       - 8.8.8.8
-    volumes:
-      - ./fast_api:/app
-    working_dir: /app
     ports:
       - "8000:8000"
-    command: >
-      bash -c "pip install --no-cache-dir fastapi uvicorn requests prometheus-fastapi-instrumentator && 
-               uvicorn main:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - REGISTERED_MODEL_NAME=nike_lstm_forecaster
+      - MODEL_ALIAS=candidate
+      - RAW_DATA_PATH=src/data/raw/nike_raw.csv
+      # --- AJUSTES MCP E RAG ---
+      - FASTAPI_BASE_URL=http://fastapi-service:8000
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000              # Porta interna do container
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:1b
+      - OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+    depends_on:
+      - prometheus
+      - chromadb
+      - ollama-pull
 
   prometheus:
     image: prom/prometheus:latest
@@ -190,8 +230,9 @@ services:
     ports:
       - "9090:9090"
     depends_on:
-      - fastapi-app
-
+      - cadvisor
+      - airflow-apiserver
+  
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -201,9 +242,14 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,frser-sqlite-datasource
+      # ATIVA ACESSO VISITANTE AUTOMÁTICO:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_NAME=Main Org.
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./mlflow.db:/opt/mlflow.db:ro
 
   mlflow-ui:
     image: ghcr.io/mlflow/mlflow:latest
@@ -216,9 +262,67 @@ services:
       - .:/opt/airflow/project
     working_dir: /opt/airflow/project
     command: >
-      mlflow ui --backend-store-uri sqlite:///mlflow.db 
-                --default-artifact-root /opt/airflow/project/mlartifacts 
-                --host 0.0.0.0
+      mlflow ui --backend-store-uri sqlite:////opt/airflow/project/mlflow.db 
+            --default-artifact-root /opt/airflow/project/mlartifacts 
+            --host 0.0.0.0
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    privileged: true
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/lib/dbus/machine-id:/var/lib/dbus/machine-id:ro
+    devices:
+      - /dev/kmsg
+    restart: always
+  
+  # --- Serviços de IA Adicionados ---
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: "http://ollama:11434"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "ollama pull llama3.2:1b && ollama pull nomic-embed-text"
+    restart: "no"
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    ports:
+      - "8100:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      ANONYMIZED_TELEMETRY: "false"
+    restart: unless-stopped
 
 volumes:
   postgres-db-volume:
+  ollama-data:         # Adicionado para os modelos LLM
+  chroma-data:         # Adicionado para o banco de vetores
