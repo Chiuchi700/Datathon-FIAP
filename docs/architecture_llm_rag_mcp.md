@@ -122,27 +122,23 @@ sequenceDiagram
 
 ## Componentes Docker
 
-| Servico | Imagem | Porta | Compose |
-|---------|--------|-------|---------|
-| Ollama | ollama/ollama:latest | 11434 | docker-compose.llm.yaml |
-| ChromaDB | chromadb/chroma:latest | 8100 | docker-compose.llm.yaml |
-| FastAPI | python:3.12-slim | 8000 | docker-compose.yaml |
-| MLflow | ghcr.io/mlflow/mlflow:latest | 5001 | docker-compose.yaml |
-| Prometheus | prom/prometheus:latest | 9090 | docker-compose.yaml |
-| Grafana | grafana/grafana:latest | 3000 | docker-compose.yaml |
+Todos os serviços abaixo fazem parte do mesmo `docker-compose.yaml`.
+
+| Servico | Imagem | Porta |
+|---------|--------|-------|
+| Ollama | ollama/ollama:latest | 11434 |
+| ChromaDB | chromadb/chroma:latest | 8100 |
+| FastAPI | python:3.12-slim | 8000 |
+| MLflow | ghcr.io/mlflow/mlflow:latest | 5001 |
+| Prometheus | prom/prometheus:latest | 9090 |
+| Grafana | grafana/grafana:latest | 3000 |
 
 ## Como rodar
 
 ```bash
-# Subir stack LLM/RAG (Ollama + ChromaDB)
-docker compose -f docker-compose.llm.yaml up -d
-
-# Aguardar pull dos modelos (~5 min na primeira vez)
-docker logs -f ollama-pull
-
-# Subir stack principal (Airflow + FastAPI + MLflow + Prometheus + Grafana)
+# Sobe a stack inteira (Airflow + FastAPI + MLflow + Prometheus + Grafana + Ollama + ChromaDB)
 docker compose up -d
 
-# Ou rodar tudo junto
-docker compose -f docker-compose.yaml -f docker-compose.llm.yaml up -d
+# Aguardar pull dos modelos do Ollama (~5 min na primeira vez)
+docker logs -f ollama-pull
 ```
