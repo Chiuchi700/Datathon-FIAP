@@ -6,6 +6,7 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
+    uid: prometheus-datathon-uid
     editable: true
     jsonData:
       httpMethod: POST
@@ -14,6 +15,7 @@ datasources:
   - name: MLflow_DB
     type: frser-sqlite-datasource
     access: proxy
+    uid: mlflow-sqlite-datathon-uid
     editable: true
     jsonData:
       path: /opt/mlflow.db
