@@ -1,0 +1,1185 @@
+{
+  "annotations": [
+    {
+      "kind": "AnnotationQuery",
+      "spec": {
+        "builtIn": true,
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "query": {
+          "datasource": {
+            "name": "-- Grafana --"
+          },
+          "group": "grafana",
+          "kind": "DataQuery",
+          "spec": {},
+          "version": "v0"
+        }
+      }
+    }
+  ],
+  "cursorSync": "Off",
+  "editable": true,
+  "elements": {
+    "panel-1": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  r.start_time AS time,\n  lm.value AS rmse\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'rmse'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  r.start_time AS time,\n  lm.value AS rmse\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'rmse'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 1,
+        "links": [],
+        "title": "Last RMSE",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "auto",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-10": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  name,\n  creation_time,\n  last_updated_time,\n  description\nFROM registered_models\nORDER BY last_updated_time DESC;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  name,\n  creation_time,\n  last_updated_time,\n  description\nFROM registered_models\nORDER BY last_updated_time DESC;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 10,
+        "links": [],
+        "title": "Model registry",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": false,
+                  "displayName": "run_time"
+                }
+              ]
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-11": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  MAX(CASE WHEN lm.key = 'rmse' THEN lm.value END) AS rmse,\n  MAX(CASE WHEN lm.key = 'mae' THEN lm.value END) AS mae,\n  MAX(CASE WHEN lm.key = 'mape' THEN lm.value END) AS mape,\n  MAX(CASE WHEN lm.key = 'direction_accuracy' THEN lm.value END) AS direction_accuracy,\n  MAX(CASE WHEN p.key = 'seq_length' THEN p.value END) AS seq_length,\n  MAX(CASE WHEN p.key = 'learning_rate' THEN p.value END) AS learning_rate,\n  MAX(CASE WHEN p.key = 'batch_size' THEN p.value END) AS batch_size\nFROM runs r\nLEFT JOIN latest_metrics lm\n  ON lm.run_uuid = r.run_uuid\nLEFT JOIN params p\n  ON p.run_uuid = r.run_uuid\nWHERE r.lifecycle_stage = 'active'\nGROUP BY r.run_uuid, r.start_time\nORDER BY rmse ASC\nLIMIT 20;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  MAX(CASE WHEN lm.key = 'rmse' THEN lm.value END) AS rmse,\n  MAX(CASE WHEN lm.key = 'mae' THEN lm.value END) AS mae,\n  MAX(CASE WHEN lm.key = 'mape' THEN lm.value END) AS mape,\n  MAX(CASE WHEN lm.key = 'direction_accuracy' THEN lm.value END) AS direction_accuracy,\n  MAX(CASE WHEN p.key = 'seq_length' THEN p.value END) AS seq_length,\n  MAX(CASE WHEN p.key = 'learning_rate' THEN p.value END) AS learning_rate,\n  MAX(CASE WHEN p.key = 'batch_size' THEN p.value END) AS batch_size\nFROM runs r\nLEFT JOIN latest_metrics lm\n  ON lm.run_uuid = r.run_uuid\nLEFT JOIN params p\n  ON p.run_uuid = r.run_uuid\nWHERE r.lifecycle_stage = 'active'\nGROUP BY r.run_uuid, r.start_time\nORDER BY rmse ASC\nLIMIT 20;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 11,
+        "links": [],
+        "title": "Best runs",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": false,
+                  "displayName": "run_time"
+                }
+              ]
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-2": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  r.start_time AS time,\n  lm.value AS predicted_price_next_day\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'predicted_price_next_day'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  r.start_time AS time,\n  lm.value AS predicted_price_next_day\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'predicted_price_next_day'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 2,
+        "links": [],
+        "title": "Last predict price",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "auto",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-3": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  lm.value AS rmse\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'rmse'\n  AND r.lifecycle_stage = 'active'\nORDER BY lm.value ASC\nLIMIT 10;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  lm.value AS rmse\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'rmse'\n  AND r.lifecycle_stage = 'active'\nORDER BY lm.value ASC\nLIMIT 10;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 3,
+        "links": [],
+        "title": "Top 10 runs per RMSE",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-4": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  r.start_time AS time,\n  lm.value AS mae\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'mae'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  r.start_time AS time,\n  lm.value AS mae\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'mae'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 4,
+        "links": [],
+        "title": "Last MAE",
+        "vizConfig": {
+          "group": "stat",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "colorMode": "value",
+              "graphMode": "area",
+              "justifyMode": "auto",
+              "orientation": "auto",
+              "percentChangeColorMode": "standard",
+              "reduceOptions": {
+                "calcs": [
+                  "lastNotNull"
+                ],
+                "fields": "",
+                "values": false
+              },
+              "showPercentChange": false,
+              "textMode": "auto",
+              "wideLayout": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-5": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  date(datetime(start_time / 1000, 'unixepoch')) AS day,\n  COUNT(*) AS runs_count\nFROM runs\nWHERE lifecycle_stage = 'active'\nGROUP BY day\nORDER BY day;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  date(datetime(start_time / 1000, 'unixepoch')) AS day,\n  COUNT(*) AS runs_count\nFROM runs\nWHERE lifecycle_stage = 'active'\nGROUP BY day\nORDER BY day;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 5,
+        "links": [],
+        "title": "Runs per day",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-6": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  run_uuid,\n  (end_time - start_time) / 1000.0 AS duration_seconds\nFROM runs\nWHERE lifecycle_stage = 'active'\n  AND end_time IS NOT NULL\nORDER BY start_time;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  run_uuid,\n  (end_time - start_time) / 1000.0 AS duration_seconds\nFROM runs\nWHERE lifecycle_stage = 'active'\n  AND end_time IS NOT NULL\nORDER BY start_time;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 6,
+        "links": [],
+        "title": "Run duration",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-7": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  MAX(CASE WHEN p.key = 'seq_length' THEN p.value END) AS seq_length,\n  MAX(CASE WHEN p.key = 'epochs' THEN p.value END) AS epochs,\n  MAX(CASE WHEN p.key = 'batch_size' THEN p.value END) AS batch_size,\n  MAX(CASE WHEN p.key = 'learning_rate' THEN p.value END) AS learning_rate,\n  MAX(CASE WHEN p.key = 'patience' THEN p.value END) AS patience,\n  MAX(CASE WHEN lm.key = 'rmse' THEN lm.value END) AS rmse,\n  MAX(CASE WHEN lm.key = 'mae' THEN lm.value END) AS mae,\n  MAX(CASE WHEN lm.key = 'mape' THEN lm.value END) AS mape,\n  MAX(CASE WHEN lm.key = 'direction_accuracy' THEN lm.value END) AS direction_accuracy\nFROM runs r\nLEFT JOIN params p\n  ON p.run_uuid = r.run_uuid\nLEFT JOIN latest_metrics lm\n  ON lm.run_uuid = r.run_uuid\nWHERE r.lifecycle_stage = 'active'\nGROUP BY r.run_uuid, r.start_time\nORDER BY r.start_time DESC;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  MAX(CASE WHEN p.key = 'seq_length' THEN p.value END) AS seq_length,\n  MAX(CASE WHEN p.key = 'epochs' THEN p.value END) AS epochs,\n  MAX(CASE WHEN p.key = 'batch_size' THEN p.value END) AS batch_size,\n  MAX(CASE WHEN p.key = 'learning_rate' THEN p.value END) AS learning_rate,\n  MAX(CASE WHEN p.key = 'patience' THEN p.value END) AS patience,\n  MAX(CASE WHEN lm.key = 'rmse' THEN lm.value END) AS rmse,\n  MAX(CASE WHEN lm.key = 'mae' THEN lm.value END) AS mae,\n  MAX(CASE WHEN lm.key = 'mape' THEN lm.value END) AS mape,\n  MAX(CASE WHEN lm.key = 'direction_accuracy' THEN lm.value END) AS direction_accuracy\nFROM runs r\nLEFT JOIN params p\n  ON p.run_uuid = r.run_uuid\nLEFT JOIN latest_metrics lm\n  ON lm.run_uuid = r.run_uuid\nWHERE r.lifecycle_stage = 'active'\nGROUP BY r.run_uuid, r.start_time\nORDER BY r.start_time DESC;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 7,
+        "links": [],
+        "title": "Hyperparameters",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": false,
+                  "displayName": "run_time"
+                }
+              ]
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-8": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  t.value AS model_framework,\n  COUNT(*) AS runs_count\nFROM tags t\nJOIN runs r\n  ON r.run_uuid = t.run_uuid\nWHERE t.key = 'model_framework'\n  AND r.lifecycle_stage = 'active'\nGROUP BY t.value\nORDER BY runs_count DESC;\n",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  t.value AS model_framework,\n  COUNT(*) AS runs_count\nFROM tags t\nJOIN runs r\n  ON r.run_uuid = t.run_uuid\nWHERE t.key = 'model_framework'\n  AND r.lifecycle_stage = 'active'\nGROUP BY t.value\nORDER BY runs_count DESC;\n",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 8,
+        "links": [],
+        "title": "Run per project",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": false,
+                  "displayName": "run_time"
+                }
+              ]
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    },
+    "panel-9": {
+      "kind": "Panel",
+      "spec": {
+        "data": {
+          "kind": "QueryGroup",
+          "spec": {
+            "queries": [
+              {
+                "kind": "PanelQuery",
+                "spec": {
+                  "hidden": false,
+                  "query": {
+                    "datasource": {
+                      "type": "frser-sqlite-datasource",
+                      "uid": "mlflow-sqlite-datathon-uid"
+                    },
+                    "group": "frser-sqlite-datasource",
+                    "kind": "DataQuery",
+                    "spec": {
+                      "queryText": "SELECT\n  t.value AS asset,\n  COUNT(*) AS runs_count\nFROM tags t\nJOIN runs r\n  ON r.run_uuid = t.run_uuid\nWHERE t.key = 'asset'\n  AND r.lifecycle_stage = 'active'\nGROUP BY t.value\nORDER BY runs_count DESC;",
+                      "queryType": "table",
+                      "rawQueryText": "SELECT\n  t.value AS asset,\n  COUNT(*) AS runs_count\nFROM tags t\nJOIN runs r\n  ON r.run_uuid = t.run_uuid\nWHERE t.key = 'asset'\n  AND r.lifecycle_stage = 'active'\nGROUP BY t.value\nORDER BY runs_count DESC;",
+                      "timeColumns": [
+                        "time",
+                        "ts"
+                      ]
+                    },
+                    "version": "v0"
+                  },
+                  "refId": "A"
+                }
+              }
+            ],
+            "queryOptions": {},
+            "transformations": []
+          }
+        },
+        "description": "",
+        "id": 9,
+        "links": [],
+        "title": "Run per asset",
+        "vizConfig": {
+          "group": "table",
+          "kind": "VizConfig",
+          "spec": {
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "custom": {
+                  "align": "auto",
+                  "cellOptions": {
+                    "type": "auto"
+                  },
+                  "footer": {
+                    "reducers": []
+                  },
+                  "inspect": false
+                },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": 0
+                    },
+                    {
+                      "color": "red",
+                      "value": 80
+                    }
+                  ]
+                }
+              },
+              "overrides": []
+            },
+            "options": {
+              "cellHeight": "sm",
+              "showHeader": true,
+              "sortBy": [
+                {
+                  "desc": false,
+                  "displayName": "run_time"
+                }
+              ]
+            }
+          },
+          "version": "13.0.1"
+        }
+      }
+    }
+  },
+  "layout": {
+    "kind": "GridLayout",
+    "spec": {
+      "items": [
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-1"
+            },
+            "height": 6,
+            "width": 8,
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-4"
+            },
+            "height": 6,
+            "width": 8,
+            "x": 8,
+            "y": 0
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-2"
+            },
+            "height": 6,
+            "width": 8,
+            "x": 16,
+            "y": 0
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-3"
+            },
+            "height": 6,
+            "width": 9,
+            "x": 0,
+            "y": 6
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-5"
+            },
+            "height": 6,
+            "width": 7,
+            "x": 9,
+            "y": 6
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-6"
+            },
+            "height": 6,
+            "width": 8,
+            "x": 16,
+            "y": 6
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-7"
+            },
+            "height": 6,
+            "width": 24,
+            "x": 0,
+            "y": 12
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-8"
+            },
+            "height": 5,
+            "width": 8,
+            "x": 0,
+            "y": 18
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-9"
+            },
+            "height": 5,
+            "width": 8,
+            "x": 8,
+            "y": 18
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-10"
+            },
+            "height": 5,
+            "width": 8,
+            "x": 16,
+            "y": 18
+          }
+        },
+        {
+          "kind": "GridLayoutItem",
+          "spec": {
+            "element": {
+              "kind": "ElementReference",
+              "name": "panel-11"
+            },
+            "height": 7,
+            "width": 24,
+            "x": 0,
+            "y": 23
+          }
+        }
+      ]
+    }
+  },
+  "links": [],
+  "liveNow": false,
+  "preferences": {
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": []
+      }
+    }
+  },
+  "preload": false,
+  "tags": [],
+  "timeSettings": {
+    "autoRefresh": "",
+    "autoRefreshIntervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ],
+    "fiscalYearStartMonth": 0,
+    "from": "2026-05-01T14:17:58.150Z",
+    "hideTimepicker": false,
+    "timezone": "browser",
+    "to": "2026-05-03T14:17:58.150Z"
+  },
+  "title": "MLflow.db Dashboard",
+  "variables": []
+}
