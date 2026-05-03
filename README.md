@@ -455,22 +455,11 @@ Antes de subir os containers, é necessário criar a estrutura de pastas usada p
 No terminal, execute:
 
 ```bash
-# 1. Pastas do Airflow e API
-mkdir -p dags logs config plugins fast_api prometheus
+# 1. Copiar arquivo env_example
+cp env_example .env
 
-# 2. Pastas do Projeto ML (Onde o pipeline grava os resultados)
-mkdir -p data/raw data/processed models reports artifacts/plots mlartifacts chroma_data ollama_data
-
-# 3. Estrutura de Provisioning do Grafana (Monitoramento automático)
-mkdir -p grafana/provisioning/dashboards grafana/provisioning/datasources
-
-# 4. Cria o arquivo do banco de dados (evita que o Docker crie uma pasta no lugar)
+# 2. Cria o arquivo do banco de dados (evita que o Docker crie uma pasta no lugar)
 touch mlflow.db
-
-# 5. Permissões de escrita (Crucial para Linux/WSL2)
-chmod -R 777 logs dags config plugins data models reports artifacts mlartifacts mlflow.db chroma_data ollama_data
-chmod -R 755 grafana/provisioning
-```
 
 > **Nota para Linux/WSL2:** caso o Grafana apresente erro de leitura no boot, execute:
 > `sudo chown -R 472:0 grafana/provisioning`
@@ -481,12 +470,6 @@ chmod -R 755 grafana/provisioning
 2. Ajuste o `AIRFLOW_UID` com o valor retornado por `id -u`, quando aplicável.
 3. Garanta que `datasource.yaml`, `dashboards.yaml` e o dashboard exportado em `.json` estejam dentro de `grafana/provisioning/`.
 4. Suba a infraestrutura:
-
-```bash
-docker compose up -d
-```
-
-Para reconstruir as imagens ao subir os serviços:
 
 ```bash
 docker compose up -d --build
