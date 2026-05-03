@@ -30,7 +30,7 @@
       },
       "id": 10,
       "panels": [],
-      "title": "Row title",
+      "title": "Metrics 1",
       "type": "row"
     },
     {
@@ -667,7 +667,7 @@
       },
       "id": 9,
       "panels": [],
-      "title": "Row title",
+      "title": "Metrics 2",
       "type": "row"
     },
     {
@@ -1170,6 +1170,6 @@
   "timezone": "browser",
   "title": "Mlflow Metrics",
   "uid": "adxc8gd",
-  "version": 15,
+  "version": 16,
   "weekStart": ""
 }
