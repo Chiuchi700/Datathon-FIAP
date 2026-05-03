@@ -21,9 +21,22 @@
   "links": [],
   "panels": [
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Metrics 1",
+      "type": "row"
+    },
+    {
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-datathon-uid"
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
       },
       "fieldConfig": {
         "defaults": {
@@ -48,15 +61,15 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 4,
+        "h": 3,
+        "w": 3,
         "x": 0,
-        "y": 0
+        "y": 1
       },
-      "id": 1,
+      "id": 8,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
+        "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
@@ -75,23 +88,26 @@
       "targets": [
         {
           "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus-datathon-uid"
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
           },
-          "editorMode": "code",
-          "expr": "count(container_last_seen{id=~\"/docker/.*\"})",
-          "legendFormat": "__auto",
-          "range": true,
-          "refId": "A"
+          "queryText": "SELECT\n  r.start_time AS time,\n  lm.value AS rmse\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'rmse'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  r.start_time AS time,\n  lm.value AS rmse\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'rmse'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
         }
       ],
-      "title": "Contador de Containers",
+      "title": "Último RMSE",
       "type": "stat"
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-datathon-uid"
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
       },
       "fieldConfig": {
         "defaults": {
@@ -116,25 +132,18 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 20,
-        "x": 4,
-        "y": 0
+        "h": 3,
+        "w": 3,
+        "x": 3,
+        "y": 1
       },
-      "id": 4,
+      "id": 11,
       "options": {
-        "displayMode": "gradient",
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "namePlacement": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
         "orientation": "auto",
+        "percentChangeColorMode": "standard",
         "reduceOptions": {
           "calcs": [
             "lastNotNull"
@@ -142,161 +151,39 @@
           "fields": "",
           "values": false
         },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
       "pluginVersion": "12.4.2",
       "targets": [
         {
-          "editorMode": "code",
-          "expr": "rate(container_fs_writes_bytes_total{id=~\"/docker/.*\"}[5m])",
-          "legendFormat": "{{device}}",
-          "range": true,
-          "refId": "A"
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT\n  r.start_time AS time,\n  lm.value AS mae\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'mae'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  r.start_time AS time,\n  lm.value AS mae\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'mae'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
         }
       ],
-      "title": "Escrita em disco",
-      "type": "bargauge"
+      "title": "Último MAE",
+      "type": "stat"
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-datathon-uid"
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": 0
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "mbytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 17,
-        "w": 12,
-        "x": 0,
-        "y": 6
-      },
-      "id": 2,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "12.4.2",
-      "targets": [
-        {
-          "editorMode": "code",
-          "expr": "container_memory_usage_bytes{id=~\"/docker/.*\"} / 1024 / 1024",
-          "legendFormat": "Container: {{id}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Uso de Memória RAM",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-datathon-uid"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
+            "mode": "thresholds"
           },
           "mappings": [],
           "thresholds": {
@@ -316,37 +203,957 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 17,
-        "w": 12,
-        "x": 12,
-        "y": 6
+        "h": 3,
+        "w": 5,
+        "x": 6,
+        "y": 1
       },
-      "id": 3,
+      "id": 12,
       "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
       "pluginVersion": "12.4.2",
       "targets": [
         {
-          "editorMode": "code",
-          "expr": "rate(container_cpu_usage_seconds_total{id=~\"/docker/.*\"}[5m]) * 100",
-          "legendFormat": "{{id}}",
-          "range": true,
-          "refId": "A"
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT\n  r.start_time AS time,\n  lm.value AS predicted_price_next_day\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'predicted_price_next_day'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  r.start_time AS time,\n  lm.value AS predicted_price_next_day\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'predicted_price_next_day'\n  AND r.lifecycle_stage = 'active'\nORDER BY r.start_time DESC\nLIMIT 1;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
         }
       ],
-      "title": "Uso de CPU",
-      "type": "timeseries"
+      "title": "Último preço previsto para o próximo dia",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 11,
+        "y": 1
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT\n  date(datetime(start_time / 1000, 'unixepoch')) AS day,\n  COUNT(*) AS runs_count\nFROM runs\nWHERE lifecycle_stage = 'active'\nGROUP BY day\nORDER BY day;",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  date(datetime(start_time / 1000, 'unixepoch')) AS day,\n  COUNT(*) AS runs_count\nFROM runs\nWHERE lifecycle_stage = 'active'\nGROUP BY day\nORDER BY day;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Quantidade de runs por dia",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 18,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  MAX(CASE WHEN lm.key = 'rmse' THEN lm.value END) AS rmse,\n  MAX(CASE WHEN lm.key = 'mae' THEN lm.value END) AS mae,\n  MAX(CASE WHEN lm.key = 'mape' THEN lm.value END) AS mape,\n  MAX(CASE WHEN lm.key = 'direction_accuracy' THEN lm.value END) AS direction_accuracy,\n  MAX(CASE WHEN p.key = 'seq_length' THEN p.value END) AS seq_length,\n  MAX(CASE WHEN p.key = 'learning_rate' THEN p.value END) AS learning_rate,\n  MAX(CASE WHEN p.key = 'batch_size' THEN p.value END) AS batch_size\nFROM runs r\nLEFT JOIN latest_metrics lm\n  ON lm.run_uuid = r.run_uuid\nLEFT JOIN params p\n  ON p.run_uuid = r.run_uuid\nWHERE r.lifecycle_stage = 'active'\nGROUP BY r.run_uuid, r.start_time\nORDER BY rmse ASC\nLIMIT 20;\n",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  MAX(CASE WHEN lm.key = 'rmse' THEN lm.value END) AS rmse,\n  MAX(CASE WHEN lm.key = 'mae' THEN lm.value END) AS mae,\n  MAX(CASE WHEN lm.key = 'mape' THEN lm.value END) AS mape,\n  MAX(CASE WHEN lm.key = 'direction_accuracy' THEN lm.value END) AS direction_accuracy,\n  MAX(CASE WHEN p.key = 'seq_length' THEN p.value END) AS seq_length,\n  MAX(CASE WHEN p.key = 'learning_rate' THEN p.value END) AS learning_rate,\n  MAX(CASE WHEN p.key = 'batch_size' THEN p.value END) AS batch_size\nFROM runs r\nLEFT JOIN latest_metrics lm\n  ON lm.run_uuid = r.run_uuid\nLEFT JOIN params p\n  ON p.run_uuid = r.run_uuid\nWHERE r.lifecycle_stage = 'active'\nGROUP BY r.run_uuid, r.start_time\nORDER BY rmse ASC\nLIMIT 20;\n",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Melhores runs",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 8
+      },
+      "id": 17,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT\n  name,\n  COUNT(*) AS versions_count\nFROM model_versions\nGROUP BY name\nORDER BY versions_count DESC;",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  name,\n  COUNT(*) AS versions_count\nFROM model_versions\nGROUP BY name\nORDER BY versions_count DESC;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Quantidade de versões por modelo",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 8
+      },
+      "id": 15,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT\n  t.value AS project,\n  COUNT(*) AS runs_count\nFROM tags t\nJOIN runs r\n  ON r.run_uuid = t.run_uuid\nWHERE t.key = 'project'\n  AND r.lifecycle_stage = 'active'\nGROUP BY t.value\nORDER BY runs_count DESC;",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  t.value AS project,\n  COUNT(*) AS runs_count\nFROM tags t\nJOIN runs r\n  ON r.run_uuid = t.run_uuid\nWHERE t.key = 'project'\n  AND r.lifecycle_stage = 'active'\nGROUP BY t.value\nORDER BY runs_count DESC;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Runs por projeto",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 14,
+        "x": 10,
+        "y": 8
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT\n  name,\n  creation_time,\n  last_updated_time,\n  description\nFROM registered_models\nORDER BY last_updated_time DESC;",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  name,\n  creation_time,\n  last_updated_time,\n  description\nFROM registered_models\nORDER BY last_updated_time DESC;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Modelos registrados",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 13,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  lm.value AS rmse\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'rmse'\n  AND r.lifecycle_stage = 'active'\nORDER BY lm.value ASC\nLIMIT 10;",
+          "queryType": "table",
+          "rawQueryText": "SELECT\n  r.run_uuid,\n  datetime(r.start_time / 1000, 'unixepoch') AS run_time,\n  lm.value AS rmse\nFROM latest_metrics lm\nJOIN runs r\n  ON r.run_uuid = lm.run_uuid\nWHERE lm.key = 'rmse'\n  AND r.lifecycle_stage = 'active'\nORDER BY lm.value ASC\nLIMIT 10;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Top 10 melhores runs por RMSE",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "id": 9,
+      "panels": [],
+      "title": "Metrics 2",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 0,
+        "y": 17
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT \n    strftime('%d/%m/%Y %H:%M', datetime(max(start_time)/1000, 'unixepoch')) as ultima_att \nFROM runs;",
+          "queryType": "table",
+          "rawQueryText": "SELECT \n    strftime('%d/%m/%Y %H:%M', datetime(max(start_time)/1000, 'unixepoch')) as ultima_att \nFROM runs;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Ultima atualização",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 16,
+        "x": 8,
+        "y": 17
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT \n    experiment_id as ID, \n    name as Nome_Experimento, \n    lifecycle_stage as Status \nFROM experiments;",
+          "queryType": "table",
+          "rawQueryText": "SELECT \n    experiment_id as ID, \n    name as Nome_Experimento, \n    lifecycle_stage as Status \nFROM experiments;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Experimentos",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 22
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT count(*) as total FROM params;",
+          "queryType": "table",
+          "rawQueryText": "SELECT count(*) as total FROM params;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Total parametros registrados",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 22
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT count(*) FROM registered_models;",
+          "queryType": "table",
+          "rawQueryText": "SELECT count(*) FROM registered_models;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Contador de Modelos",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 7,
+        "x": 10,
+        "y": 22
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT count(*) FROM runs;",
+          "queryType": "table",
+          "rawQueryText": "SELECT count(*) FROM runs;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Runs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 7,
+        "x": 17,
+        "y": 22
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value \nWHERE time >= $__from / 1000 and time < $__to / 1000",
+          "queryType": "table",
+          "rawQueryText": "SELECT CAST(strftime('%s', 'now', '-1 minute') as INTEGER) as time, 4 as value \nWHERE time >= $__from / 1000 and time < $__to / 1000",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "New panel",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "mlflow-sqlite-datathon-uid"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 17,
+        "x": 0,
+        "y": 26
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "sm",
+        "showHeader": true
+      },
+      "pluginVersion": "12.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "mlflow-sqlite-datathon-uid"
+          },
+          "queryText": "SELECT \n    experiment_id as EXP,\n    run_uuid as ID,\n    status,\n    strftime('%d/%m %H:%M', datetime(start_time/1000, 'unixepoch')) as Inicio\nFROM runs\nORDER BY start_time DESC\nLIMIT 10;",
+          "queryType": "table",
+          "rawQueryText": "SELECT \n    experiment_id as EXP,\n    run_uuid as ID,\n    status,\n    strftime('%d/%m %H:%M', datetime(start_time/1000, 'unixepoch')) as Inicio\nFROM runs\nORDER BY start_time DESC\nLIMIT 10;",
+          "refId": "A",
+          "timeColumns": [
+            "time",
+            "ts"
+          ]
+        }
+      ],
+      "title": "Status Geral do Experimento",
+      "type": "table"
     }
   ],
   "preload": false,
@@ -356,13 +1163,13 @@
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Docker Metrics",
-  "uid": "adnj5q7",
-  "version": 19,
+  "title": "Mlflow Metrics",
+  "uid": "adxc8gd",
+  "version": 16,
   "weekStart": ""
 }
